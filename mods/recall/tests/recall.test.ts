@@ -270,3 +270,16 @@ describe('friction privacy', () => {
     expect(line).not.toContain('xyz987654321')
   })
 })
+
+describe('memory results that hold no memories', () => {
+  test('an error wrapped in a gateway envelope yields nothing', () => {
+    const wrapped = JSON.stringify({ result: JSON.stringify({ error: 'Failed to search memories: budget exceeded', results: [] }) })
+    expect(extractMemories({ content: [{ type: 'text', text: wrapped }] }, 2000)).toEqual([])
+  })
+
+  test('JSON with an empty list yields nothing, a wrapped list is unwrapped', () => {
+    expect(extractMemories({ content: [{ type: 'text', text: '{"results": []}' }] }, 2000)).toEqual([])
+    const wrapped = JSON.stringify({ result: JSON.stringify({ results: [{ text: 'D-48: work memory is separate' }] }) })
+    expect(extractMemories({ content: [{ type: 'text', text: wrapped }] }, 2000)).toEqual(['D-48: work memory is separate'])
+  })
+})
