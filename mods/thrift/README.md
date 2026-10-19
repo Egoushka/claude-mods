@@ -9,8 +9,8 @@ Spend less on tokens and money. Four small features, each on its own switch.
 The band above the prompt (shared with other mods; thrift draws on top of whatever is already there) shows up to three lines:
 
 ```
-thrift · route: trivial → haiku (suggested) · diet: −2.1k/request
-context 112k ▲ 6k/turn · ~7 turns to compaction  ▂▃▄▅▆▇
+thrift · simple prompt: haiku would do (you're on opus); /model haiku to switch · diet saves ~2.1k per request
+context 112k · +6k/turn · 5h limit 42% · week limit 18%
 context 163k is past 150k: [ Hand off ] [ Compact ] [ Dismiss ]
 ```
 
@@ -20,7 +20,7 @@ On each prompt you type, one Haiku call sizes the work as `trivial`, `normal` or
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `routerMode` | `suggest` | `off`: no call. `suggest`: a toast and the band line name the model that fits. `auto`: the turn runs on that model. |
+| `routerMode` | `suggest` | `off`: no call. `suggest`: the band names the model that fits, only when it differs from the one you are on. `auto`: the turn runs on that model. |
 | `trivialModel` | `haiku` | Alias (`haiku`, `sonnet`, `opus`) or a full model id. |
 | `normalModel` | `sonnet` | |
 | `hardModel` | `opus` | |
@@ -45,9 +45,9 @@ Caveats, so you can judge whether `auto` pays off:
 
 Cost: none by itself. Hand off costs one turn of your normal model.
 
-## Context weather
+## Context line
 
-At the end of each main-loop turn thrift stores the context size (the last 30 turns) and fits a line through the last 6. The line shows the size, growth per turn and the turns left before the engine compacts (`autoCompactThreshold`), or before the window fills when auto-compaction is off. A fall of more than 30% (a compaction or `/clear`) starts the trend over. With a flat or falling trend no forecast is shown. The sparkline is one `Raster` row on the terminal, colored by how full the context was (green, amber, red against the limit), and block characters in a `Text` on the desktop, VS Code and mobile surfaces.
+One row: the context size, its growth per turn (a line fit through the last 6 turns; `steady` when flat), and how much of each subscription window you have used (`5h limit`, `week limit`, or a gateway's `spend limit`), as the engine measures them. A fall of more than 30% (a compaction or `/clear`) starts the trend over. Past the coach threshold the same row turns yellow and carries the Hand off, Compact and Dismiss buttons, so the size is never shown twice.
 
 Setting: `weather` (default on). Cost: none. It reads the engine's own figures; `$.session.usage` with `breakdown: summary` estimates locally and sends nothing, and is called once per session and after a reset.
 

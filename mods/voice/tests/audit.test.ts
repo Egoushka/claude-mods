@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { bandLabel, buildBackupPrompt, parseClaims, shouldAudit } from '../hooks/audit'
+import { bandLabel, buildAuditPrompt, buildBackupPrompt, keepEvidence, parseClaims, shouldAudit } from '../hooks/audit'
 
 describe('parseClaims', () => {
   test('plain JSON, fenced JSON and prose around it', () => {
@@ -45,7 +45,21 @@ describe('prompts', () => {
     expect(p).toContain('file:line')
   })
   test('band label', () => {
-    expect(bandLabel(1)).toBe('1 unbacked claim')
-    expect(bandLabel(3)).toBe('3 unbacked claims')
+    expect(bandLabel(1)).toBe('voice: 1 claim in the last reply cites no source')
+    expect(bandLabel(3)).toBe('voice: 3 claims in the last reply cite no source')
+  })
+})
+
+describe('evidence from the turn', () => {
+  test('tool output goes into the audit prompt, newest results kept, each cut short', () => {
+    let list: string[] = []
+    for (let i = 0; i < 25; i += 1) list = keepEvidence(list, 'Bash', `out ${i} ` + 'x'.repeat(2000))
+    expect(list).toHaveLength(20)
+    expect(list[0]).toContain('out 5')
+    expect(list[19]!.length).toBeLessThan(1300)
+    const prompt = buildAuditPrompt('PR 2 is merged.', ['Bash: MERGED 9dbc304'])
+    expect(prompt).toContain('<tool_output>')
+    expect(prompt).toContain('MERGED 9dbc304')
+    expect(buildAuditPrompt('x')).not.toContain('<tool_output>')
   })
 })

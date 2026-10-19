@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { VoiceAudit, VoiceStats } from '../types'
-import { bandLabel, buildAuditPrompt, buildBackupPrompt, parseClaims, shouldAudit } from './audit'
+import { bandLabel, buildAuditPrompt, buildBackupPrompt, keepEvidence, parseClaims, shouldAudit } from './audit'
 import { filterSlop, parseExtra } from './slop'
 
 const initialStats: VoiceStats = { edits: 0, audited: 0, isAuditing: false }
@@ -23,11 +23,11 @@ async function countEdits($: EngineInterface, edits: number, verb: string) {
 }
 
 // One small-model call per qualifying answer; a newer turn makes an older result stale.
-async function runAudit($: EngineInterface, answer: string, model: string, id: number, current: () => number, verb: string) {
+async function runAudit($: EngineInterface, answer: string, evidence: readonly string[], model: string, id: number, current: () => number, verb: string) {
   await update($, stats, s => ({ ...s, isAuditing: true }))
   await refreshStatus($, verb)
   const reply = await $.model
-    .complete({ model, prompt: buildAuditPrompt(answer), maxTokens: 700, effort: 'low', timeoutMs: 30000 })
+    .complete({ model, prompt: buildAuditPrompt(answer, evidence), maxTokens: 700, effort: 'low', timeoutMs: 30000 })
     .catch(() => undefined)
   if (current() !== id) return
   const claims = reply?.isAnswered ? parseClaims(reply.text) : []
@@ -55,6 +55,8 @@ export const register: Register = (on, options) => {
   const minLength = typeof options.auditMinLength === 'number' ? options.auditMinLength : 600
 
   let generation = 0
+  // Tool output seen during the running turn: what a claim may rest on without quoting it.
+  let evidence: string[] = []
 
   on('session.start', async ($, e, next) => {
     await update($, stats, () => initialStats)
@@ -85,7 +87,17 @@ export const register: Register = (on, options) => {
     return next(r.edits > 0 ? { ...e, props: { ...e.props, text: r.text } } : e)
   })
 
+  on('tool.call', async ($, e, next) => {
+    const ran = await next(e)
+    if (isAuditOn && ran.deny === undefined) {
+      const text = typeof ran.text === 'string' ? ran.text : JSON.stringify(ran.result ?? '')
+      evidence = keepEvidence(evidence, String(e.tool), text)
+    }
+    return ran
+  })
+
   on('turn.start', async ($, e, next) => {
+    if (!e.agentId) evidence = []
     generation += 1
     await update($, audit, () => ({ claims: [] }))
     return next(e)
@@ -95,7 +107,7 @@ export const register: Register = (on, options) => {
     if (isAuditOn && e.reason === 'answer' && !e.agentId && shouldAudit(e.answer, minLength)) {
       generation += 1
       const id = generation
-      void runAudit($, e.answer, model, id, () => generation, verb)
+      void runAudit($, e.answer, evidence, model, id, () => generation, verb)
     }
     return next(e)
   })
@@ -113,13 +125,13 @@ export const register: Register = (on, options) => {
         <Box key="voice" flexDirection="column">
           <Box>
             <Text color="yellow">{bandLabel(claims.length)} </Text>
-            <Button key="back" label="Back them up" onPress={() => backThemUp($, claims)} />
+            <Button key="back" label="Ask for sources" onPress={() => backThemUp($, claims)} />
             <Text> </Text>
             <Button key="dismiss" label="Dismiss" onPress={() => dismiss($)} />
           </Box>
           {shown.map((c, i) => (
             <Text key={`c${i}`} dimColor wrap="truncate-end">
-              {`  ${i + 1}. ${c}`}
+              {`  · ${c}`}
             </Text>
           ))}
         </Box>

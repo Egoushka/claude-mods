@@ -1,6 +1,6 @@
 # claude-mods
 
-Twelve mods for Claude Code. A mod is a plugin whose hooks run inside the CLI as TypeScript: it can stop or rewrite tool calls, edit what the model reads, draw panes and a band above the prompt, call MCP servers and run its own model requests.
+Ten mods for Claude Code. A mod is a plugin whose hooks run inside the CLI as TypeScript: it can stop or rewrite tool calls, edit what the model reads, draw panes and a band above the prompt, call MCP servers and run its own model requests.
 
 Needs Claude Code 2.1.287 or newer. Each mod installs on its own.
 
@@ -35,9 +35,7 @@ Swap `guardrails` for any name below. Settings show up in the config menu; every
 | [rival](mods/rival) | After a turn that changed files, a read-only subagent reviews the diff for bugs; findings in the band | one subagent review per changed turn |
 | [forge](mods/forge) | Claude proposes a new mod through a `forge` tool; nothing is written until you approve it | none |
 | [ledger](mods/ledger) | Active hours per repo, `/hours`, CSV export, monthly goal; drafts a build-in-public post when a PR merges (never posts) | one draft per merge, opt-in |
-| [pet](mods/pet) | A creature per repo that eats green tests and merged PRs | none |
 | [replay](mods/replay) | `/replay`: scrub a session's file changes turn by turn | none |
-| [arcade](mods/arcade) | A catch-and-dodge game in the band while Claude works; each tool call drops something in | none |
 
 ## Safety
 

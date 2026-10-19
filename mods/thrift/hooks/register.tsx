@@ -11,18 +11,17 @@ import {
   measureSections,
   modelForTier,
   parseTier,
+  contextLine,
+  routeLine,
   savedTokens,
-  sparkRaster,
-  sparkText,
-  weatherLine,
 } from './logic'
 
 const PANE = 'thrift-diet'
 const MAX_POINTS = 30
 
-const route = atom({ plugin: 'thrift', key: 'route' } as const, { tier: null, model: null, isApplied: false } as Route)
+const route = atom({ plugin: 'thrift', key: 'route' } as const, { tier: null, model: null, isApplied: false, current: null } as Route)
 const coach = atom({ plugin: 'thrift', key: 'coach' } as const, { tokens: null, crossing: 0, dismissedCrossing: 0 } as Coach)
-const weather = atom({ plugin: 'thrift', key: 'weather' } as const, { points: [], limit: null, isCompaction: false } as Weather)
+const weather = atom({ plugin: 'thrift', key: 'weather' } as const, { points: [], limit: null, isCompaction: false, limits: [] } as Weather)
 const diet = atom({ plugin: 'thrift', key: 'diet' } as const, { cwd: '', dropped: [], sections: [] } as Diet)
 
 const RUBRIC =
@@ -70,6 +69,7 @@ async function recordTurn($: EngineInterface) {
   const reset = isReset(prev.points[prev.points.length - 1], tokens)
   const limit = reset || prev.limit === null ? await readLimit($) : { limit: prev.limit, isCompaction: prev.isCompaction }
   await update($, weather, w => ({
+    ...w,
     points: (reset ? [tokens] : [...w.points, tokens]).slice(-MAX_POINTS),
     limit: limit.limit,
     isCompaction: limit.isCompaction,
@@ -110,8 +110,8 @@ async function toggleSection($: EngineInterface, id: string) {
 
 async function resetAll($: EngineInterface) {
   await update($, coach, () => ({ tokens: null, crossing: 0, dismissedCrossing: 0 }))
-  await update($, weather, () => ({ points: [], limit: null, isCompaction: false }))
-  await update($, route, () => ({ tier: null, model: null, isApplied: false }))
+  await update($, weather, w => ({ points: [], limit: null, isCompaction: false, limits: w.limits }))
+  await update($, route, () => ({ tier: null, model: null, isApplied: false, current: null }))
 }
 
 export const register: Register = (on, options) => {
@@ -148,8 +148,7 @@ export const register: Register = (on, options) => {
     const current = await $.session.model()
     const isDifferent = !isSameModel(current, wanted)
     target = mode === 'auto' && isDifferent ? wanted : null
-    await setRoute($, { tier, model: wanted, isApplied: target !== null })
-    if (mode === 'suggest' && isDifferent) $.ui.toast(`thrift: this looks ${tier}. ${wanted} would do; /model ${wanted} to switch.`)
+    await setRoute($, { tier, model: wanted, isApplied: target !== null, current })
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -169,6 +168,8 @@ export const register: Register = (on, options) => {
   // Coach: the context size, as the engine measures it after each response.
   on('session.measure', async ($, e, next) => {
     if (e.context.tokens !== undefined && threshold > 0) await noteContext($, e.context.tokens, threshold)
+    if (e.rateLimits.length > 0)
+      await update($, weather, w => ({ ...w, limits: e.rateLimits.map(l => ({ kind: l.kind, percentUsed: l.percentUsed })) }))
     return next(e)
   })
 
@@ -196,35 +197,30 @@ export const register: Register = (on, options) => {
     const w = await read($, weather)
     const d = await read($, diet)
     const { Box, Text, Button } = $.ui.resolve(e)
-    const Raster = e.surface === 'terminal' ? $.ui.resolve(e).Raster : undefined
 
     const head: string[] = []
-    if (mode !== 'off' && r.tier && r.model) head.push(`route: ${r.tier} → ${r.model} (${r.isApplied ? 'auto' : mode === 'auto' ? 'already on it' : 'suggested'})`)
+    const routed = mode === 'off' ? undefined : routeLine(r, r.current !== null && r.model !== null && isSameModel(r.current, r.model))
+    if (routed) head.push(routed)
     const saved = savedTokens(d.sections, d.dropped)
-    if (isDietOn && saved > 0) head.push(`diet: −${fmtTokens(saved)}/request`)
+    if (isDietOn && saved > 0) head.push(`diet saves ~${fmtTokens(saved)} per request`)
 
-    const line = isWeatherOn ? weatherLine(w.points, w.limit, w.isCompaction) : undefined
+    const line = isWeatherOn ? contextLine(w.points, w.limits) : undefined
     const isCoaching = threshold > 0 && c.tokens !== null && c.tokens >= threshold && c.crossing !== c.dismissedCrossing
+    const shown = line ?? (isCoaching ? `context ${fmtTokens(c.tokens ?? 0)}` : undefined)
 
-    if (head.length === 0 && !line && !isCoaching) return rest
+    if (head.length === 0 && !shown) return rest
 
     return (
       <Box flexDirection="column">
         {head.length > 0 && <Text dimColor>thrift · {head.join(' · ')}</Text>}
-        {line && (
+        {shown && (
           <Box>
-            <Text dimColor>{line} </Text>
-            {Raster ? <Raster key="spark" {...sparkRaster(w.points, w.limit)} /> : <Text dimColor>{sparkText(w.points, w.limit)}</Text>}
-          </Box>
-        )}
-        {isCoaching && (
-          <Box>
-            <Text color="yellow">context {fmtTokens(c.tokens ?? 0)} is past {fmtTokens(threshold)}: </Text>
-            <Button key="handoff" label="Hand off" variant="primary" onPress={() => handOff($, handoffText)} />
-            <Text> </Text>
-            <Button key="compact" label="Compact" onPress={() => compactNow($)} />
-            <Text> </Text>
-            <Button key="dismiss" label="Dismiss" dimColor onPress={() => dismiss($)} />
+            {isCoaching ? <Text color="yellow">{shown}, past {fmtTokens(threshold)}: </Text> : <Text dimColor>{shown}</Text>}
+            {isCoaching && <Button key="handoff" label="Hand off" variant="primary" onPress={() => handOff($, handoffText)} />}
+            {isCoaching && <Text> </Text>}
+            {isCoaching && <Button key="compact" label="Compact" onPress={() => compactNow($)} />}
+            {isCoaching && <Text> </Text>}
+            {isCoaching && <Button key="dismiss" label="Dismiss" dimColor onPress={() => dismiss($)} />}
           </Box>
         )}
         {rest}

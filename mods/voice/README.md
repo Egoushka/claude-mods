@@ -26,9 +26,9 @@ On `turn.complete` of an answer, the mod asks a small model to list factual clai
 
 Skipped: refused, aborted or errored turns, subagent runs, answers shorter than the minimum length, and answers with fewer than three code or system signals (backticks, file names, words like `config`, `service`, `commit`), so chat replies cost nothing.
 
-The result shows as a row above the prompt: `3 unbacked claims` with two buttons, plus the first three claims when there is room.
+The result shows as a row above the prompt: `voice: 3 claims in the last reply cite no source` with two buttons, plus the first three claims when there is room. The auditor also reads the tool output of that turn (the newest 20 results, each cut to 1,200 characters), so a claim the output supports is not flagged just because the reply doesn't quote it.
 
-- **Back them up** submits a prompt (as your own words) that lists the claims and asks Claude to cite file:line, command output or a URL for each, or mark it UNKNOWN, and correct any that turn out wrong.
+- **Ask for sources** submits a prompt (as your own words) that lists the claims and asks Claude to cite file:line, command output or a URL for each, or mark it UNKNOWN, and correct any that turn out wrong.
 - **Dismiss** hides the row. The next turn also clears it.
 
 The row is added to the shared band with `await next(e)`, so other mods' rows stay. It yields to surveys. The terminal and desktop surfaces draw it; other surfaces have no band.
@@ -49,5 +49,5 @@ The auditor is a model judging text it cannot check against the code, so treat t
 ## Cost
 
 - Slop filter: no model calls, a few regex passes per reply.
-- Auditor: one `$.model.complete` call per qualifying answer. Input is the answer (cut at 12,000 characters) plus about 250 tokens of instructions; output is capped at 700 tokens, usually under 150. On Haiku that is a fraction of a cent. "Back them up" costs one normal turn.
-- Neither part adds anything to the main conversation's context, except the "Back them up" prompt when you press it.
+- Auditor: one `$.model.complete` call per qualifying answer. Input is the answer (cut at 12,000 characters) plus about 250 tokens of instructions; output is capped at 700 tokens, usually under 150. On Haiku that is a fraction of a cent. "Ask for sources" costs one normal turn. With tool output included the input grows by up to about 4k tokens.
+- Neither part adds anything to the main conversation's context, except the "Ask for sources" prompt when you press it.

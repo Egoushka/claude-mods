@@ -13,6 +13,13 @@ describe('rules', () => {
     expect(m.text).toContain('PASSWORD=${PASSWORD}')
   })
 
+  test('code that reads a secret is not masked; env-style assignments are', () => {
+    expect(maskSecrets('const tokens = context.tokens').count).toBe(0)
+    expect(maskSecrets('export const savedTokens = (sections) => x').count).toBe(0)
+    expect(maskSecrets('const TOKEN = process.env.GH_TOKEN').count).toBe(0)
+    expect(maskSecrets('GH_TOKEN=abcd1234efgh5678').text).toBe('GH_TOKEN=[masked:assignment]')
+  })
+
   test('flags irreversible commands and leaves safe ones', () => {
     expect(irreversibleKind('git push --force origin main')).toBe('force push')
     expect(irreversibleKind('git push origin main')).toBeUndefined()

@@ -43,71 +43,34 @@ export function slope(points: readonly number[], window = 6): number {
   return num / den
 }
 
-export function turnsLeft(points: readonly number[], limit: number | null): number | null {
-  const last = points[points.length - 1]
-  if (limit === null || last === undefined) return null
-  const s = slope(points)
-  if (s <= 0) return null
-  return Math.max(0, Math.ceil((limit - last) / s))
-}
+const LIMIT_NAMES: Record<string, string> = { five_hour: '5h limit', seven_day: 'week limit', spend_limit: 'spend limit' }
 
-export function weatherLine(points: readonly number[], limit: number | null, isCompaction: boolean): string | undefined {
+// One line: the context size once, its growth per turn, and how much of each subscription window is used.
+export function contextLine(points: readonly number[], limits: readonly { kind: string; percentUsed: number }[]): string | undefined {
   const last = points[points.length - 1]
   if (last === undefined) return undefined
-  const s = slope(points)
-  const trend = points.length < 2 ? '' : s > 0 ? ` ▲ ${fmtTokens(s)}/turn` : ' ▬ steady'
-  const left = turnsLeft(points, limit)
-  const goal = isCompaction ? 'compaction' : 'the window limit'
-  const tail = left === null ? '' : left === 0 ? ` · past ${goal}` : ` · ~${left} turn${left === 1 ? '' : 's'} to ${goal}`
-  return `context ${fmtTokens(last)}${trend}${tail}`
+  const parts = [`context ${fmtTokens(last)}`]
+  if (points.length >= 2) {
+    const s = slope(points)
+    parts.push(s > 0 ? `+${fmtTokens(s)}/turn` : 'steady')
+  }
+  for (const l of limits) parts.push(`${LIMIT_NAMES[l.kind] ?? l.kind} ${l.percentUsed}%`)
+  return parts.join(' · ')
+}
+
+const TIER_WORDS: Record<string, string> = { trivial: 'simple', normal: 'routine', hard: 'hard' }
+
+// The router's line, shown only when it would change something.
+export function routeLine(r: { tier: string | null; model: string | null; isApplied: boolean; current: string | null }, isSame: boolean): string | undefined {
+  if (!r.tier || !r.model || isSame) return undefined
+  const kind = TIER_WORDS[r.tier] ?? r.tier
+  return r.isApplied
+    ? `${kind} prompt: this turn runs on ${r.model}`
+    : `${kind} prompt: ${r.model} would do${r.current ? ` (you're on ${r.current})` : ''}; /model ${r.model} to switch`
 }
 
 // A compaction or /clear shows as a sharp fall; the trend starts over from there.
 export const isReset = (prev: number | undefined, next: number) => prev !== undefined && next < prev * 0.7
-
-const BLOCKS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
-const level = (value: number, limit: number) => Math.min(BLOCKS.length - 1, Math.max(0, Math.floor((value / limit) * BLOCKS.length)))
-
-export const sparkText = (points: readonly number[], limit: number | null, width = 16) => {
-  const top = limit ?? Math.max(1, ...points)
-  return points.slice(-width).map(v => BLOCKS[level(v, top)]).join('')
-}
-
-const colorFor = (ratio: number) => (ratio < 0.6 ? 0x3fb950 : ratio < 0.85 ? 0xd29922 : 0xf85149)
-const DEFAULT = 0x01000000
-
-const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-export function base64(bytes: Uint8Array): string {
-  let out = ''
-  for (let i = 0; i < bytes.length; i += 3) {
-    const a = bytes[i] ?? 0
-    const b = bytes[i + 1] ?? 0
-    const c = bytes[i + 2] ?? 0
-    const n = (a << 16) | (b << 8) | c
-    out += B64[(n >> 18) & 63]! + B64[(n >> 12) & 63]! + (i + 1 < bytes.length ? B64[(n >> 6) & 63]! : '=') + (i + 2 < bytes.length ? B64[n & 63]! : '=')
-  }
-  return out
-}
-
-// One row of cells for a Raster: a block glyph per turn, colored by how full the context was.
-export function sparkRaster(points: readonly number[], limit: number | null, width = 16): { columns: number; rows: 1; cells: string } {
-  const shown = points.slice(-width)
-  const top = limit ?? Math.max(1, ...shown)
-  const words = new Uint32Array(shown.length * 3)
-  shown.forEach((v, i) => {
-    words[i * 3] = BLOCKS[level(v, top)]!.codePointAt(0)!
-    words[i * 3 + 1] = colorFor(v / top)
-    words[i * 3 + 2] = DEFAULT
-  })
-  const bytes = new Uint8Array(words.length * 4)
-  words.forEach((w, i) => {
-    bytes[i * 4] = w & 255
-    bytes[i * 4 + 1] = (w >> 8) & 255
-    bytes[i * 4 + 2] = (w >> 16) & 255
-    bytes[i * 4 + 3] = (w >>> 24) & 255
-  })
-  return { columns: Math.max(1, shown.length), rows: 1, cells: base64(bytes) }
-}
 
 export const measureSections = (sections: readonly { id: string; text: string }[]): DietSection[] =>
   sections.map(s => ({ id: s.id, tokens: estimateTokens(s.text), isPinned: isPinnedSection(s.id) }))
