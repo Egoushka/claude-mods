@@ -1,0 +1,12 @@
+{
+  "name": "cli-tools",
+  "version": "0.1.0",
+  "description": "Turn shell commands into typed tools the model sees from the first turn",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "tools": { "type": "string", "title": "Tools (JSON)", "description": "JSON array of {name, description, argv: [\"cmd\", \"{{param}}\"], params: {param: {type, description, required?, enum?}}, timeoutMs?}. Empty or [] registers nothing.", "default": "[]" },
+    "maxOutputChars": { "type": "number", "title": "Output cap (characters)", "description": "Stdout and stderr are each cut to this length before the model reads them.", "default": 20000 }
+  }
+}

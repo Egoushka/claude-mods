@@ -1,0 +1,22 @@
+{
+  "name": "cockpit",
+  "version": "0.1.0",
+  "description": "A live pane for what surrounds the session: cost, context, git, PR checks, your own gauges, an inbox for messages from other sessions, and an away-mode summary",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "gauges": { "type": "string", "title": "Custom gauges (JSON)", "description": "JSON array of {label, kind: \"mcp\"|\"command\"|\"http\", server+tool+args | argv | url, every (seconds), pick (dotted path, or /regex/)}. Empty or [] shows only the built-in gauges.", "default": "[]" },
+    "refreshSeconds": { "type": "number", "title": "Built-in refresh (seconds)", "description": "How often git and PR checks refresh. At least 5.", "default": 30 },
+    "quietInbox": { "type": "boolean", "title": "Quiet inbox", "description": "Consume messages from other sessions so they reach the Inbox section and a toast, not the transcript or the model.", "default": false },
+    "awayMode": { "type": "boolean", "title": "Away mode", "description": "When a turn ends and you seem away, send a short summary.", "default": true },
+    "awayMinutes": { "type": "number", "title": "Away after (minutes idle)", "description": "Idle time that counts as away.", "default": 5 },
+    "awaySummary": { "type": "string", "title": "Away summary", "description": "answer: the first 300 characters of the final answer (free). haiku: a one-line Haiku summary (one small model call per away turn).", "default": "answer", "options": ["answer", "haiku"] },
+    "presenceServer": { "type": "string", "title": "Presence MCP server", "description": "Optional. An MCP server whose tool answers with your idle time in seconds. Empty reads macOS idle time with ioreg; elsewhere you count as present.", "default": "" },
+    "presenceTool": { "type": "string", "title": "Presence MCP tool", "description": "Tool name on the presence server.", "default": "" },
+    "presenceArgs": { "type": "string", "title": "Presence tool arguments (JSON)", "description": "JSON object passed to the presence tool.", "default": "{}" },
+    "awayServer": { "type": "string", "title": "Away MCP server", "description": "Optional. Send the summary through this MCP server (a chat bot, say) instead of a terminal notification.", "default": "" },
+    "awayTool": { "type": "string", "title": "Away MCP tool", "description": "Tool name on the away server.", "default": "" },
+    "awayArgs": { "type": "string", "title": "Away tool arguments (JSON)", "description": "JSON object; any string containing {{text}} gets the summary. Empty means {\"text\": \"{{text}}\"}.", "default": "" }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "voice",
+  "version": "0.1.0",
+  "description": "Plain replies backed by evidence: strips filler and AI tells from the model's text, and flags factual claims that cite no file:line, command output or URL",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "slopFilter": { "type": "boolean", "title": "Slop filter", "description": "Remove praise openers, closers and filler words from the model's text before it is stored.", "default": true },
+    "mode": { "type": "string", "title": "Filter mode", "description": "rewrite edits the stored text; flag only counts what it would have changed.", "options": ["rewrite", "flag"], "default": "rewrite" },
+    "extraPhrases": { "type": "string", "title": "Extra banned phrases", "description": "Comma-separated phrases to delete, or /regex/flags entries. Example: leverage, /\\bseamless(ly)?\\b/i", "default": "" },
+    "audit": { "type": "boolean", "title": "Evidence auditor", "description": "After a long answer about code or systems, ask a small model which claims cite no file:line, command output or URL.", "default": true },
+    "auditModel": { "type": "string", "title": "Auditor model", "description": "Model alias or id for the audit call.", "default": "haiku" },
+    "auditMinLength": { "type": "number", "title": "Audit minimum length", "description": "Answers shorter than this many characters are never audited.", "default": 600 }
+  }
+}

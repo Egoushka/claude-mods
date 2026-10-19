@@ -1,0 +1,21 @@
+{
+  "name": "recall",
+  "version": "0.1.0",
+  "description": "Context you would otherwise retype: memory recall per prompt, smarter @-mentions, repeated-correction rules, a friction log and selection verbs",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "memoryServer": { "type": "string", "title": "Memory server", "description": "Name of an MCP server (as /mcp lists it) to recall from on every typed prompt. Empty turns memory recall off.", "default": "" },
+    "recallTool": { "type": "string", "title": "Recall tool", "description": "The memory server's search tool.", "default": "recall" },
+    "recallArgs": { "type": "string", "title": "Recall arguments", "description": "JSON object for the recall tool; \"{{query}}\" in any string is replaced by the prompt text.", "default": "{\"query\": \"{{query}}\"}" },
+    "maxChars": { "type": "number", "title": "Memory size cap", "description": "Characters of recalled memory added to a prompt.", "default": 2000 },
+    "smartMentions": { "type": "boolean", "title": "Smart @-mentions", "description": "For an @file, add its last 5 commits, likely test files and files that reference it.", "default": true },
+    "harvestCorrections": { "type": "boolean", "title": "Correction harvester", "description": "Spot prompts that correct the assistant (a Haiku call per prompt) and offer a rule when the same correction repeats.", "default": true },
+    "instructionsFile": { "type": "string", "title": "Instructions file", "description": "File a drafted rule is proposed as an edit to.", "default": "CLAUDE.md" },
+    "frictionFile": { "type": "string", "title": "Friction file", "description": "Markdown file to append friction events to. Empty keeps them in the plugin store only.", "default": "" },
+    "retainServer": { "type": "string", "title": "Retain server", "description": "MCP server that /remember saves to. Empty stores notes in the plugin store.", "default": "" },
+    "retainTool": { "type": "string", "title": "Retain tool", "description": "The retain server's save tool.", "default": "retain" },
+    "retainArgs": { "type": "string", "title": "Retain arguments", "description": "JSON object for the retain tool; \"{{text}}\" in any string is replaced by the selected text.", "default": "{\"content\": \"{{text}}\"}" }
+  }
+}

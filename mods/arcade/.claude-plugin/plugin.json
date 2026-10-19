@@ -1,0 +1,12 @@
+{
+  "name": "arcade",
+  "version": "0.1.0",
+  "description": "A tiny catch-and-dodge game in the band above the prompt while Claude works. Every tool call drops something into it",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "enabled": { "type": "boolean", "title": "Show the game", "description": "Draw the game in the band while Claude works.", "default": true },
+    "startCollapsed": { "type": "boolean", "title": "Start collapsed", "description": "Begin each session with the game folded into one line.", "default": false }
+  }
+}

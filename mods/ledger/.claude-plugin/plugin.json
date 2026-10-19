@@ -1,0 +1,18 @@
+{
+  "name": "ledger",
+  "version": "0.1.0",
+  "description": "Active hours per repo with a /hours pane, CSV export and a monthly goal line; drafts a build-in-public post when you merge a PR",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "idleMinutes": { "type": "number", "title": "Idle minutes", "description": "A gap between two of your prompts shorter than this counts as active time.", "default": 10 },
+    "csvPath": { "type": "string", "title": "CSV export path", "description": "File the Export button writes. Empty copies the CSV to the clipboard.", "default": "" },
+    "hourlyRate": { "type": "number", "title": "Hourly rate", "description": "Turns hours into money on the goal line. 0 turns the goal line off.", "default": 0 },
+    "currency": { "type": "string", "title": "Currency", "description": "Label shown after the amount on the goal line.", "default": "USD" },
+    "monthlyGoal": { "type": "number", "title": "Monthly goal", "description": "Income goal per month, in the currency above. 0 turns the goal line off.", "default": 0 },
+    "publicRepos": { "type": "string", "title": "Public repos", "description": "Regex tested against a repo's owner/name and its folder. A merged PR there gets a drafted post. Empty turns drafting off.", "default": "" },
+    "draftsDir": { "type": "string", "title": "Drafts folder", "description": "Folder the drafted posts are written to as markdown. Empty turns drafting off.", "default": "" },
+    "draftModel": { "type": "string", "title": "Draft model", "description": "Model alias or id that writes the draft.", "default": "haiku" }
+  }
+}

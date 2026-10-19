@@ -1,0 +1,13 @@
+{
+  "name": "forge",
+  "version": "0.1.0",
+  "description": "Claude proposes a new mod; nothing is written until you approve it in a dialog. Also suggests a mod when the same tool-call sequence repeats",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "forgeDir": { "type": "string", "title": "Where forged mods go", "description": "Folder a forged mod is written to; <name> is replaced by the mod's name (appended when missing). ~ is your home folder. An existing folder is never overwritten.", "default": "~/.claude/forged-mods/<name>/" },
+    "suggestRepeats": { "type": "boolean", "title": "Suggest a mod for repeated work", "description": "When the same sequence of 3 or more shell or MCP calls has run 3 times, offer to have Claude propose a mod for it.", "default": true },
+    "approvalWaitSeconds": { "type": "number", "title": "Seconds the tool call waits for you", "description": "How long the forge call holds for your answer before it returns 'pending' (the engine caps a hook near 10 seconds; the dialog stays open and the answer reaches Claude as a message). 0 always returns pending.", "default": 7 }
+  }
+}

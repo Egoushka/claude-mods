@@ -1,0 +1,42 @@
+{
+  "name": "rival",
+  "version": "0.1.0",
+  "description": "A quiet second reviewer: after a turn that changed files, a read-only subagent looks for correctness bugs in the diff and reports in a band above the prompt",
+  "author": {
+    "name": "Yehor Hrabovskyi"
+  },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Review after turns",
+      "description": "After a turn that changed files, review the diff with a read-only subagent. Each review spends tokens (see the README).",
+      "default": true
+    },
+    "model": {
+      "type": "string",
+      "title": "Reviewer model",
+      "description": "Model alias or id the reviewer runs on.",
+      "default": "sonnet"
+    },
+    "minLines": {
+      "type": "number",
+      "title": "Smallest diff",
+      "description": "Skip diffs with fewer changed lines than this.",
+      "default": 20
+    },
+    "minConfidence": {
+      "type": "number",
+      "title": "Lowest confidence shown",
+      "description": "Drop findings the reviewer rates below this (0 to 100).",
+      "default": 50
+    },
+    "cooldownMinutes": {
+      "type": "number",
+      "title": "Cooldown",
+      "description": "Minutes between reviews; changes made meanwhile are reviewed by the next one. 0 reviews every changed turn.",
+      "default": 10
+    }
+  }
+}

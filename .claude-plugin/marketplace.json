@@ -1,0 +1,80 @@
+{
+  "name": "claude-mods",
+  "owner": {
+    "name": "Yehor Hrabovskyi"
+  },
+  "plugins": [
+    {
+      "name": "arcade",
+      "source": "./mods/arcade",
+      "description": "A tiny catch-and-dodge game in the band above the prompt while Claude works. Every tool call drops something into it",
+      "version": "0.1.0"
+    },
+    {
+      "name": "cli-tools",
+      "source": "./mods/cli-tools",
+      "description": "Turn shell commands into typed tools the model sees from the first turn",
+      "version": "0.1.0"
+    },
+    {
+      "name": "cockpit",
+      "source": "./mods/cockpit",
+      "description": "A live pane for what surrounds the session: cost, context, git, PR checks, your own gauges, an inbox for messages from other sessions, and an away-mode summary",
+      "version": "0.1.0"
+    },
+    {
+      "name": "forge",
+      "source": "./mods/forge",
+      "description": "Claude proposes a new mod; nothing is written until you approve it in a dialog. Also suggests a mod when the same tool-call sequence repeats",
+      "version": "0.1.0"
+    },
+    {
+      "name": "guardrails",
+      "source": "./mods/guardrails",
+      "description": "Boundaries, secret masking, a second opinion before irreversible commands, shell autocorrect, loop breaker, diff budget",
+      "version": "0.1.0"
+    },
+    {
+      "name": "ledger",
+      "source": "./mods/ledger",
+      "description": "Active hours per repo with a /hours pane, CSV export and a monthly goal line; drafts a build-in-public post when you merge a PR",
+      "version": "0.1.0"
+    },
+    {
+      "name": "pet",
+      "source": "./mods/pet",
+      "description": "A small creature per repo in the band above the prompt. Passing tests, commits and merged PRs feed it; failing tests, force pushes and red CI make it sick",
+      "version": "0.1.0"
+    },
+    {
+      "name": "recall",
+      "source": "./mods/recall",
+      "description": "Context you would otherwise retype: memory recall per prompt, smarter @-mentions, repeated-correction rules, a friction log and selection verbs",
+      "version": "0.1.0"
+    },
+    {
+      "name": "replay",
+      "source": "./mods/replay",
+      "description": "Scrub through a session's file changes turn by turn, each drawn as a unified diff",
+      "version": "0.1.0"
+    },
+    {
+      "name": "rival",
+      "source": "./mods/rival",
+      "description": "A quiet second reviewer: after a turn that changed files, a read-only subagent looks for correctness bugs in the diff and reports in a band above the prompt",
+      "version": "0.1.0"
+    },
+    {
+      "name": "thrift",
+      "source": "./mods/thrift",
+      "description": "Spend less on tokens and money: a model router, a context coach, a context forecast and an instruction diet",
+      "version": "0.1.0"
+    },
+    {
+      "name": "voice",
+      "source": "./mods/voice",
+      "description": "Plain replies backed by evidence: strips filler and AI tells from the model's text, and flags factual claims that cite no file:line, command output or URL",
+      "version": "0.1.0"
+    }
+  ]
+}

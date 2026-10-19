@@ -1,0 +1,12 @@
+{
+  "name": "replay",
+  "version": "0.1.0",
+  "description": "Scrub through a session's file changes turn by turn, each drawn as a unified diff",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "maxChanges": { "type": "number", "title": "Changes kept", "description": "How many of the latest edits are kept in memory for /replay.", "default": 100 },
+    "maxDiffChars": { "type": "number", "title": "Characters per diff", "description": "A bigger diff keeps its first hunks and says how many it left out.", "default": 12000 }
+  }
+}
