@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  mods:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code@2.1.303
+      # scripts/check.sh also type-checks, but that needs claude-code.d.ts, which the
+      # engine writes into a loaded mod and the repo does not hold. CI runs the rest.
+      - name: Validate and test every mod
+        run: |
+          fail=0
+          for mod in mods/*/; do
+            echo "== $mod"
+            claude plugin validate "$mod" || fail=1
+            if ls "$mod"tests/*.test.ts >/dev/null 2>&1; then claude plugin test "$mod" || fail=1; fi
+          done
+          claude plugin validate . || fail=1
+          exit $fail
