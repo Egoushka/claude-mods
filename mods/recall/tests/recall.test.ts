@@ -122,6 +122,18 @@ describe('memory ghost', () => {
     await start($)
     expect((await $.prompt.submit(TYPED)).context).toBeUndefined()
   })
+  test('a prompt under minWords never calls the memory server', { options: { memoryServer: 'mem' } }, async ($, on) => {
+    engine(on)
+    let calls = 0
+    on('mcp.call', () => {
+      calls += 1
+      return { value: block('- unrelated') } as never
+    })
+    await start($)
+    const r = await $.prompt.submit({ ...TYPED, text: 'merge #877' })
+    expect(calls).toBe(0)
+    expect(r.context).toBeUndefined()
+  })
 })
 
 describe('commands', () => {

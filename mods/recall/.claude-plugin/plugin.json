@@ -10,6 +10,7 @@
     "recallTool": { "type": "string", "title": "Recall tool", "description": "The memory server's search tool.", "default": "recall" },
     "recallArgs": { "type": "string", "title": "Recall arguments", "description": "JSON object for the recall tool; \"{{query}}\" in any string is replaced by the prompt text.", "default": "{\"query\": \"{{query}}\"}" },
     "maxChars": { "type": "number", "title": "Memory size cap", "description": "Characters of recalled memory added to a prompt.", "default": 2000 },
+    "minWords": { "type": "number", "title": "Minimum words for recall", "description": "Prompts shorter than this skip memory recall: \"ok go\" or \"merge #877\" return unrelated memories.", "default": 6 },
     "smartMentions": { "type": "boolean", "title": "Smart @-mentions", "description": "For an @file, add its last 5 commits, likely test files and files that reference it.", "default": true },
     "harvestCorrections": { "type": "boolean", "title": "Correction harvester", "description": "Spot prompts that correct the assistant (a Haiku call per prompt) and offer a rule when the same correction repeats.", "default": true },
     "instructionsFile": { "type": "string", "title": "Instructions file", "description": "File a drafted rule is proposed as an edit to.", "default": "CLAUDE.md" },

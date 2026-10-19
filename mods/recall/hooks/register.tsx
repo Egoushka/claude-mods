@@ -37,6 +37,7 @@ type Settings = {
   recallTool: string
   recallArgs: string
   maxChars: number
+  minWords: number
   smartMentions: boolean
   harvest: boolean
   instructionsFile: string
@@ -212,6 +213,7 @@ export const register: Register = (on, options) => {
     recallTool: text(options.recallTool, 'recall'),
     recallArgs: text(options.recallArgs, '{"query": "{{query}}"}'),
     maxChars: typeof options.maxChars === 'number' && options.maxChars > 0 ? options.maxChars : 2000,
+    minWords: typeof options.minWords === 'number' && options.minWords >= 0 ? options.minWords : 6,
     smartMentions: options.smartMentions !== false,
     harvest: options.harvestCorrections !== false,
     instructionsFile: text(options.instructionsFile, 'CLAUDE.md') || 'CLAUDE.md',
@@ -259,7 +261,7 @@ export const register: Register = (on, options) => {
       if (said) void harvest($, s, project, e.text, said).catch(() => undefined)
     }
 
-    if (!s.memoryServer || e.text.trim().length < 3) return next(e)
+    if (!s.memoryServer || e.text.trim().split(/\s+/).length < s.minWords) return next(e)
     const recalled = await recallMemories($, s, e.text).catch(() => null)
     await update($, memories, () => recalled)
     if (!recalled) return next(e)
