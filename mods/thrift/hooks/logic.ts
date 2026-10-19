@@ -43,19 +43,13 @@ export function slope(points: readonly number[], window = 6): number {
   return num / den
 }
 
-const LIMIT_NAMES: Record<string, string> = { five_hour: '5h limit', seven_day: 'week limit', spend_limit: 'spend limit' }
-
-// One line: the context size once, its growth per turn, and how much of each subscription window is used.
-export function contextLine(points: readonly number[], limits: readonly { kind: string; percentUsed: number }[]): string | undefined {
+// One line: the context size once and how fast it grows per turn (each turn re-sends all of it).
+export function contextLine(points: readonly number[]): string | undefined {
   const last = points[points.length - 1]
   if (last === undefined) return undefined
-  const parts = [`context ${fmtTokens(last)}`]
-  if (points.length >= 2) {
-    const s = slope(points)
-    parts.push(s > 0 ? `+${fmtTokens(s)}/turn` : 'steady')
-  }
-  for (const l of limits) parts.push(`${LIMIT_NAMES[l.kind] ?? l.kind} ${l.percentUsed}%`)
-  return parts.join(' · ')
+  if (points.length < 2) return `context ${fmtTokens(last)}`
+  const s = slope(points)
+  return s > 0 ? `context ${fmtTokens(last)}, growing ~${fmtTokens(s)} per turn` : `context ${fmtTokens(last)}, steady`
 }
 
 const TIER_WORDS: Record<string, string> = { trivial: 'simple', normal: 'routine', hard: 'hard' }

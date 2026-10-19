@@ -10,7 +10,7 @@ The band above the prompt (shared with other mods; thrift draws on top of whatev
 
 ```
 thrift · simple prompt: haiku would do (you're on opus); /model haiku to switch · diet saves ~2.1k per request
-context 112k · +6k/turn · 5h limit 42% · week limit 18%
+context 112k, growing ~6k per turn
 context 163k is past 150k: [ Hand off ] [ Compact ] [ Dismiss ]
 ```
 
@@ -47,7 +47,7 @@ Cost: none by itself. Hand off costs one turn of your normal model.
 
 ## Context line
 
-One row: the context size, its growth per turn (a line fit through the last 6 turns; `steady` when flat), and how much of each subscription window you have used (`5h limit`, `week limit`, or a gateway's `spend limit`), as the engine measures them. A fall of more than 30% (a compaction or `/clear`) starts the trend over. Past the coach threshold the same row turns yellow and carries the Hand off, Compact and Dismiss buttons, so the size is never shown twice.
+One row: the context size and how much it grows per turn (a line fit through the last 6 turns; `steady` when flat). Every turn re-sends the whole context, so the growth is how fast each turn gets more expensive. A fall of more than 30% (a compaction or `/clear`) starts the trend over. Past the coach threshold the same row turns yellow and carries the Hand off, Compact and Dismiss buttons, so the size is never shown twice.
 
 Setting: `weather` (default on). Cost: none. It reads the engine's own figures; `$.session.usage` with `breakdown: summary` estimates locally and sends nothing, and is called once per session and after a reset.
 

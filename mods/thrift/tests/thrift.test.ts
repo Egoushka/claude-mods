@@ -13,13 +13,13 @@ describe('logic', () => {
     expect(isSameModel('claude-sonnet-5-5', 'opus')).toBe(false)
   })
 
-  test('one context line: size once, growth per turn, subscription windows', () => {
+  test('one context line: size once and growth per turn in words', () => {
     const points = [100000, 106000, 112000]
     expect(Math.round(slope(points))).toBe(6000)
-    const limits = [{ kind: 'five_hour', percentUsed: 42 }, { kind: 'seven_day', percentUsed: 18.5 }]
-    expect(contextLine(points, limits)).toBe('context 112k · +6k/turn · 5h limit 42% · week limit 18.5%')
-    expect(contextLine([50000, 50000], [])).toBe('context 50k · steady')
-    expect(contextLine([], limits)).toBeUndefined()
+    expect(contextLine(points)).toBe('context 112k, growing ~6k per turn')
+    expect(contextLine([50000, 50000])).toBe('context 50k, steady')
+    expect(contextLine([50000])).toBe('context 50k')
+    expect(contextLine([])).toBeUndefined()
     expect(isReset(120000, 20000)).toBe(true)
     expect(isReset(120000, 118000)).toBe(false)
   })
@@ -205,24 +205,17 @@ describe('weather', () => {
     await runTurns($ as never, on, [100000, 106000, 112000])
     for (const surface of ['terminal', 'desktop'] as const) {
       const ui = await $.ui.mount(band(surface))
-      expect(await ui.find({ text: 'context 112k · +6k/turn' })).toBeDefined()
+      expect(await ui.find({ text: 'context 112k, growing ~6k per turn' })).toBeDefined()
       expect(await ui.find({ type: 'Raster' })).toBeUndefined()
       await ui.unmount()
     }
-  })
-
-  test('subscription windows from the engine measure join the context line', async ($, on) => {
-    await runTurns($ as never, on, [100000, 106000])
-    await $.session.measure({ context: { tokens: 106000, window: 200000 }, rateLimits: [{ kind: 'five_hour', percentUsed: 42 }], changed: [] } as never)
-    const ui = await $.ui.mount(band('desktop'))
-    expect(await ui.find({ text: 'context 106k · +6k/turn · 5h limit 42%' })).toBeDefined()
   })
 
   test('a compaction starts the trend over', async ($, on) => {
     await runTurns($ as never, on, [100000, 110000, 120000, 30000])
     const ui = await $.ui.mount(band('desktop'))
     expect(await ui.find({ text: /^context 30k/ })).toBeDefined()
-    expect(await ui.find({ text: /\/turn/ })).toBeUndefined()
+    expect(await ui.find({ text: /growing/ })).toBeUndefined()
   })
 
   test('a subagent turn does not enter the trend', async ($, on) => {

@@ -1,4 +1,4 @@
-const MIN = 3
+const MIN = 2
 const MAX = 8
 const TIMES = 3
 export const HISTORY_CAP = 400
@@ -35,7 +35,13 @@ function occurrences(history: readonly string[], gram: readonly string[]): numbe
   return count
 }
 
-// The longest sequence of 3-8 calls (two or more different ones) that ran 3 times without overlapping, unless an
+// A run like a→b→a→b is the unit a→b repeated; the unit is what gets suggested.
+const isPeriodic = (gram: readonly string[]) => {
+  for (let p = 1; p < gram.length; p += 1) if (gram.every((x, i) => x === gram[i % p])) return true
+  return false
+}
+
+// The longest sequence of 2-8 calls (two or more different ones) that ran 3 times without overlapping, unless an
 // earlier suggestion already covers it. `seen` holds what was suggested.
 export function findRepeat(history: readonly string[], seen: readonly (readonly string[])[]): string[] | undefined {
   for (let len = Math.min(MAX, Math.floor(history.length / TIMES)); len >= MIN; len -= 1) {
@@ -45,7 +51,7 @@ export function findRepeat(history: readonly string[], seen: readonly (readonly 
       const key = gram.join('\u0001')
       if (tried.has(key)) continue
       tried.add(key)
-      if (new Set(gram).size < 2) continue
+      if (new Set(gram).size < 2 || isPeriodic(gram)) continue
       if (seen.some(s => contains(s, gram))) continue
       if (occurrences(history, gram) >= TIMES) return gram
     }
@@ -53,8 +59,9 @@ export function findRepeat(history: readonly string[], seen: readonly (readonly 
   return undefined
 }
 
+// mcp__server__tool reads as its tool name; long shell lines are cut.
 export const describeSequence = (sequence: readonly string[]) =>
-  sequence.map(s => (s.startsWith('mcp__') ? s : s.length > 32 ? `${s.slice(0, 31)}…` : s)).join(' → ')
+  sequence.map(s => (s.startsWith('mcp__') ? (s.split('__').slice(2).join('__') || s) : s.length > 32 ? `${s.slice(0, 31)}…` : s)).join(' → ')
 
 export function suggestionPrompt(sequence: readonly string[]): string {
   return (

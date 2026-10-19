@@ -16,7 +16,7 @@ A hook has about ten seconds of its own time, and a person often needs longer. T
 
 ## Repetition
 
-Shell calls (Bash) and MCP calls are normalized (quoted strings, numbers, hashes and paths blurred) and kept per session. Reads, edits and searches are left out: that loop is ordinary work. At the end of a turn, a sequence of 3 to 8 different calls that has run 3 times without overlap shows a row above the prompt: `Repeated 3×: git status → … — Forge a tool?` **Forge a tool** submits a prompt asking Claude to judge whether it is worth automating and, if so, to propose it through `forge`. Each sequence is offered once.
+Shell calls (Bash) and MCP calls the model makes are normalized (quoted strings, numbers, hashes and paths blurred) and kept per session. Calls another mod makes (a gauge polling an MCP server) and subagent calls are left out, and so are reads, edits and searches: that loop is ordinary work. At the end of a turn, a sequence of 2 to 8 different calls that has run 3 times without overlap shows a row above the prompt, shortened to its smallest repeating unit: `forge: Claude ran git status → npm run build 3 times. Bundle it into one tool?` **Draft a tool** submits a prompt asking Claude to judge whether it is worth automating and, if so, to propose it through `forge`. Each sequence is offered once.
 
 ## Settings
 

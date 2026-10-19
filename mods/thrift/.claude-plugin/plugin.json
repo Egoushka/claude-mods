@@ -1,6 +1,6 @@
 {
   "name": "thrift",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Spend less on tokens and money: a model router, a context coach, a context forecast and an instruction diet",
   "author": {
     "name": "Yehor Hrabovskyi"
