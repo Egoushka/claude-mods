@@ -1,6 +1,6 @@
 {
   "name": "guardrails",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Boundaries, secret masking, a second opinion before irreversible commands, shell autocorrect, loop breaker, diff budget",
   "author": { "name": "Yehor Hrabovskyi" },
   "license": "MIT",

@@ -32,7 +32,7 @@
       "name": "guardrails",
       "source": "./mods/guardrails",
       "description": "Boundaries, secret masking, a second opinion before irreversible commands, shell autocorrect, loop breaker, diff budget",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "name": "ledger",
