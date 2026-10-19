@@ -20,7 +20,7 @@
       "name": "forge",
       "source": "./mods/forge",
       "description": "Claude proposes a new mod; nothing is written until you approve it in a dialog. Also suggests a mod when the same tool-call sequence repeats",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "name": "guardrails",
@@ -56,7 +56,7 @@
       "name": "thrift",
       "source": "./mods/thrift",
       "description": "Spend less on tokens and money: a model router, a context coach, a context forecast and an instruction diet",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "name": "voice",

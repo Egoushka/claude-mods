@@ -68,7 +68,13 @@ describe('repetition', () => {
     expect(findRepeat(history, [cycle])).toBeUndefined()
     expect(findRepeat([...cycle, ...cycle], [])).toBeUndefined()
     expect(findRepeat(['a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'], [])).toBeUndefined()
-    expect(describeSequence(['git status', 'mcp__x__y'])).toBe('git status → mcp__x__y')
+    expect(describeSequence(['git status', 'mcp__x__y'])).toBe('git status → y')
+    expect(describeSequence(['mcp__homelab__alertmanager_list_alerts'])).toBe('alertmanager_list_alerts')
+  })
+
+  test('a repeating pair is offered as the pair, not as its longer repetitions', () => {
+    const history = ['a', 'b', 'a', 'b', 'a', 'b', 'a', 'b']
+    expect(findRepeat(history, [])).toEqual(['a', 'b'])
   })
 })
 
@@ -218,12 +224,33 @@ describe('repetition suggestion', () => {
       await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' } as never)
 
       const band = await $.ui.mount({ plugin: 'forge', surface, component: 'AbovePrompt', props: BAND })
-      expect(text(await band.findAll({ type: 'Text' }))).toContain('Repeated 3×: git status → git diff --stat → npm run build — Forge a tool?')
+      expect(text(await band.findAll({ type: 'Text' }))).toContain('forge: Claude ran git status → git diff --stat → npm run build 3 times. Bundle it into one tool?')
       await band.press({ key: 'forge-it' })
       const again = await $.ui.mount({ plugin: 'forge', surface, component: 'AbovePrompt', props: BAND })
-      expect(text(await again.findAll({ type: 'Text' }))).not.toContain('Repeated')
+      expect(text(await again.findAll({ type: 'Text' }))).not.toContain('Bundle it')
     })
   }
+
+  // Another mod's background calls (cockpit polling gauges) must not read as the model repeating itself.
+  const poller = {
+    name: 'poller',
+    register: ((on: On) => {
+      on('command.run', { command: 'poll' }, async $ => {
+        for (let i = 0; i < 4; i += 1) for (const tool of ['mcp__ops__alerts', 'mcp__ops__uptime']) await $.tool.call({ tool } as never)
+        return { text: 'polled' }
+      })
+    }) as never,
+  }
+  test('calls another mod makes are not offered', { plugins: [poller] }, async ($, on) => {
+    engine(on)
+    mock.clock(on)
+    on('tool.call', () => ({ result: 'ok' }) as never)
+    await start($)
+    await $.command.run({ command: 'poll', args: '', origin: { kind: 'composer' }, presentation: {} } as never)
+    await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' } as never)
+    const band = await $.ui.mount({ plugin: 'forge', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+    expect(text(await band.findAll({ type: 'Text' }))).not.toContain('Bundle it')
+  })
 
   test('ordinary edit and read loops are not offered', async ($, on) => {
     engine(on)
@@ -233,6 +260,6 @@ describe('repetition suggestion', () => {
     for (let i = 0; i < 4; i += 1) for (const tool of ['Read', 'Edit', 'Grep']) await $.tool.call({ tool } as never)
     await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' } as never)
     const band = await $.ui.mount({ plugin: 'forge', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-    expect(text(await band.findAll({ type: 'Text' }))).not.toContain('Repeated')
+    expect(text(await band.findAll({ type: 'Text' }))).not.toContain('Bundle it')
   })
 })

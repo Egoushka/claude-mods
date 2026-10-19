@@ -21,7 +21,7 @@ const MAX_POINTS = 30
 
 const route = atom({ plugin: 'thrift', key: 'route' } as const, { tier: null, model: null, isApplied: false, current: null } as Route)
 const coach = atom({ plugin: 'thrift', key: 'coach' } as const, { tokens: null, crossing: 0, dismissedCrossing: 0 } as Coach)
-const weather = atom({ plugin: 'thrift', key: 'weather' } as const, { points: [], limit: null, isCompaction: false, limits: [] } as Weather)
+const weather = atom({ plugin: 'thrift', key: 'weather' } as const, { points: [], limit: null, isCompaction: false } as Weather)
 const diet = atom({ plugin: 'thrift', key: 'diet' } as const, { cwd: '', dropped: [], sections: [] } as Diet)
 
 const RUBRIC =
@@ -110,7 +110,7 @@ async function toggleSection($: EngineInterface, id: string) {
 
 async function resetAll($: EngineInterface) {
   await update($, coach, () => ({ tokens: null, crossing: 0, dismissedCrossing: 0 }))
-  await update($, weather, w => ({ points: [], limit: null, isCompaction: false, limits: w.limits }))
+  await update($, weather, () => ({ points: [], limit: null, isCompaction: false }))
   await update($, route, () => ({ tier: null, model: null, isApplied: false, current: null }))
 }
 
@@ -168,8 +168,6 @@ export const register: Register = (on, options) => {
   // Coach: the context size, as the engine measures it after each response.
   on('session.measure', async ($, e, next) => {
     if (e.context.tokens !== undefined && threshold > 0) await noteContext($, e.context.tokens, threshold)
-    if (e.rateLimits.length > 0)
-      await update($, weather, w => ({ ...w, limits: e.rateLimits.map(l => ({ kind: l.kind, percentUsed: l.percentUsed })) }))
     return next(e)
   })
 
@@ -204,7 +202,7 @@ export const register: Register = (on, options) => {
     const saved = savedTokens(d.sections, d.dropped)
     if (isDietOn && saved > 0) head.push(`diet saves ~${fmtTokens(saved)} per request`)
 
-    const line = isWeatherOn ? contextLine(w.points, w.limits) : undefined
+    const line = isWeatherOn ? contextLine(w.points) : undefined
     const isCoaching = threshold > 0 && c.tokens !== null && c.tokens >= threshold && c.crossing !== c.dismissedCrossing
     const shown = line ?? (isCoaching ? `context ${fmtTokens(c.tokens ?? 0)}` : undefined)
 

@@ -182,7 +182,8 @@ export const register: Register = (on, options) => {
   // Every other shell or MCP call joins the history the repetition scan reads.
   on('tool.call', async ($, e, next) => {
     const ran = await next(e)
-    if (!ctx.isSuggesting || ran.deny !== undefined || e.agentId !== undefined) return ran
+    // Only the model's own calls count: another mod's background calls (a gauge polling MCP) are not work to automate.
+    if (!ctx.isSuggesting || ran.deny !== undefined || e.agentId !== undefined || next.origin.plugin !== 'engine') return ran
     const key = normalizeCall(String(e.tool), e as unknown as { command?: unknown })
     if (key) ctx.history = [...ctx.history, key].slice(-HISTORY_CAP)
     return ran
@@ -223,9 +224,9 @@ export const register: Register = (on, options) => {
         {!isPending && suggestion && (
           <Box>
             <Text>
-              Repeated {suggestion.count}×: {describeSequence(suggestion.sequence)} — Forge a tool?{' '}
+              forge: Claude ran {describeSequence(suggestion.sequence)} {suggestion.count} times. Bundle it into one tool?{' '}
             </Text>
-            <Button key="forge-it" label="Forge a tool" variant="primary" onPress={() => askForTool($, suggestion.sequence)} />
+            <Button key="forge-it" label="Draft a tool" variant="primary" onPress={() => askForTool($, suggestion.sequence)} />
             <Button key="dismiss" label="Dismiss" onPress={() => update($, suggestionAtom, () => null)} />
           </Box>
         )}
