@@ -25,6 +25,7 @@ Gives Claude the context you would otherwise retype. Five parts, each on its own
 | `memoryServer` | empty (off) | MCP server name as `/mcp` lists it |
 | `recallTool`, `recallArgs` | `recall`, `{"query": "{{query}}"}` | tool and a JSON template; `{{query}}` is replaced in every string |
 | `maxChars` | 2000 | memory text added per prompt |
+| `minWords` | 6 | prompts with fewer words skip recall (short approvals pulled in unrelated memories) |
 | `smartMentions` | on | the @-mention context |
 | `harvestCorrections` | on | the correction harvester |
 | `instructionsFile` | `CLAUDE.md` | target of a drafted rule |
