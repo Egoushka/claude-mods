@@ -49,6 +49,25 @@ function itemText(item: unknown): string {
 }
 
 /** Memories out of an MCP result: a JSON list when the server sends one, else paragraphs and bullets. Capped at `maxChars` in all. */
+// JSON text, unwrapping a gateway's {"result": "<json>"} envelope; undefined for plain text.
+function parseWrapped(text: string): unknown {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return undefined
+  }
+  const inner = typeof parsed === 'object' && parsed !== null ? (parsed as { result?: unknown }).result : undefined
+  if (typeof inner === 'string') {
+    try {
+      return JSON.parse(inner)
+    } catch {
+      return parsed
+    }
+  }
+  return parsed
+}
+
 export function extractMemories(result: McpLike, maxChars: number): string[] {
   const text = (result.content ?? [])
     .map(block => (block.type === 'text' ? (block.text ?? '') : ''))
@@ -58,14 +77,14 @@ export function extractMemories(result: McpLike, maxChars: number): string[] {
   const structured = listIn(result.structuredContent)
   if (structured) raw = structured.map(itemText)
   else {
-    try {
-      const list = listIn(JSON.parse(text))
-      if (list) raw = list.map(itemText)
-    } catch {
-      // plain text
-    }
-    if (raw.length === 0 && text)
+    const parsed = parseWrapped(text)
+    if (parsed !== undefined) {
+      // JSON with an error, or with no list in it, holds no memories; never pass it on as one.
+      if (typeof parsed === 'object' && parsed !== null && (parsed as { error?: unknown }).error) return []
+      raw = (listIn(parsed) ?? []).map(itemText)
+    } else if (text) {
       raw = text.split(/\n\s*\n|\n(?=\s*(?:[-*•]|\d+[.)])\s)/).map(part => part.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, ''))
+    }
   }
   const items: string[] = []
   let used = 0

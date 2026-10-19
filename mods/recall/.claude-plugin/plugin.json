@@ -1,6 +1,6 @@
 {
   "name": "recall",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Context you would otherwise retype: memory recall per prompt, smarter @-mentions, repeated-correction rules, a friction log and selection verbs",
   "author": { "name": "Yehor Hrabovskyi" },
   "license": "MIT",
