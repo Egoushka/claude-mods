@@ -5,12 +5,6 @@
   },
   "plugins": [
     {
-      "name": "arcade",
-      "source": "./mods/arcade",
-      "description": "A tiny catch-and-dodge game in the band above the prompt while Claude works. Every tool call drops something into it",
-      "version": "0.1.0"
-    },
-    {
       "name": "cli-tools",
       "source": "./mods/cli-tools",
       "description": "Turn shell commands into typed tools the model sees from the first turn",
@@ -32,18 +26,12 @@
       "name": "guardrails",
       "source": "./mods/guardrails",
       "description": "Boundaries, secret masking, a second opinion before irreversible commands, shell autocorrect, loop breaker, diff budget",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "name": "ledger",
       "source": "./mods/ledger",
       "description": "Active hours per repo with a /hours pane, CSV export and a monthly goal line; drafts a build-in-public post when you merge a PR",
-      "version": "0.1.0"
-    },
-    {
-      "name": "pet",
-      "source": "./mods/pet",
-      "description": "A small creature per repo in the band above the prompt. Passing tests, commits and merged PRs feed it; failing tests, force pushes and red CI make it sick",
       "version": "0.1.0"
     },
     {
@@ -68,13 +56,13 @@
       "name": "thrift",
       "source": "./mods/thrift",
       "description": "Spend less on tokens and money: a model router, a context coach, a context forecast and an instruction diet",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "name": "voice",
       "source": "./mods/voice",
       "description": "Plain replies backed by evidence: strips filler and AI tells from the model's text, and flags factual claims that cite no file:line, command output or URL",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ]
 }

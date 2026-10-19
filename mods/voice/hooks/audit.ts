@@ -9,15 +9,26 @@ export function shouldAudit(answer: string, minLength: number): boolean {
   return (answer.match(SIGNAL) ?? []).length >= 3
 }
 
-export function buildAuditPrompt(answer: string): string {
+export function buildAuditPrompt(answer: string, evidence: readonly string[] = []): string {
+  const seen = evidence.length
+    ? 'Tool output the assistant saw while writing it (a claim this output supports counts as backed, even when the answer does not quote it):\n' +
+      `<tool_output>\n${evidence.join('\n---\n').slice(0, 16000)}\n</tool_output>\n\n`
+    : ''
   return (
     'Below is an answer an AI assistant gave about code or a system. List the factual claims it states as certain ' +
-    'about code, files, configuration, behaviour, versions or infrastructure that carry NO evidence in the text: ' +
-    'no file:line reference, no quoted command output, no URL. Skip opinions, plans, questions, advice, ' +
-    'claims marked UNKNOWN or unverified, and claims the text backs up. At most 8, each one short sentence in the answer\'s own words.\n' +
+    'about code, files, configuration, behaviour, versions or infrastructure that carry NO evidence: ' +
+    'no file:line reference, no quoted command output, no URL in the text, and no support in the tool output. Skip opinions, plans, questions, advice, ' +
+    'claims marked UNKNOWN or unverified, and claims the text or the tool output backs up. At most 8, each one short sentence in the answer\'s own words.\n' +
     'Reply with JSON only: {"claims": ["...", "..."]}. If every claim is backed, reply {"claims": []}.\n\n' +
+    seen +
     `<answer>\n${answer.slice(0, 12000)}\n</answer>`
   )
+}
+
+// Keeps the newest tool results of a turn, each cut short, as evidence for the auditor.
+export function keepEvidence(list: readonly string[], tool: string, text: string, max = 20): string[] {
+  const one = `${tool}: ${text.replace(/\s+/g, ' ').trim().slice(0, 1200)}`
+  return [...list, one].slice(-max)
 }
 
 const MAX_CLAIMS = 8
@@ -68,4 +79,4 @@ export function buildBackupPrompt(claims: readonly string[]): string {
   )
 }
 
-export const bandLabel = (n: number) => `${n} unbacked claim${n === 1 ? '' : 's'}`
+export const bandLabel = (n: number) => `voice: ${n} claim${n === 1 ? '' : 's'} in the last reply cite${n === 1 ? 's' : ''} no source`

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { applyDiet, base64, estimateTokens, isReset, isSameModel, modelForTier, parseTier, slope, sparkRaster, turnsLeft, weatherLine } from '../hooks/logic'
+import { applyDiet, contextLine, estimateTokens, isReset, isSameModel, modelForTier, parseTier, routeLine, slope } from '../hooks/logic'
 
 describe('logic', () => {
   test('parses the classifier reply and maps tiers to models', () => {
@@ -13,24 +13,22 @@ describe('logic', () => {
     expect(isSameModel('claude-sonnet-5-5', 'opus')).toBe(false)
   })
 
-  test('forecasts turns to the limit by linear trend', () => {
+  test('one context line: size once, growth per turn, subscription windows', () => {
     const points = [100000, 106000, 112000]
     expect(Math.round(slope(points))).toBe(6000)
-    expect(turnsLeft(points, 150000)).toBe(7)
-    expect(weatherLine(points, 150000, true)).toBe('context 112k ▲ 6k/turn · ~7 turns to compaction')
-    expect(weatherLine([50000, 50000], 150000, false)).toBe('context 50k ▬ steady')
-    expect(weatherLine([], 1, false)).toBeUndefined()
+    const limits = [{ kind: 'five_hour', percentUsed: 42 }, { kind: 'seven_day', percentUsed: 18.5 }]
+    expect(contextLine(points, limits)).toBe('context 112k · +6k/turn · 5h limit 42% · week limit 18.5%')
+    expect(contextLine([50000, 50000], [])).toBe('context 50k · steady')
+    expect(contextLine([], limits)).toBeUndefined()
     expect(isReset(120000, 20000)).toBe(true)
     expect(isReset(120000, 118000)).toBe(false)
   })
 
-  test('the sparkline raster packs one cell per turn', () => {
-    const r = sparkRaster([10, 50, 100], 100)
-    expect(r.columns).toBe(3)
-    // 3 cells * 3 words * 4 bytes = 36 bytes -> 48 base64 characters
-    expect(r.cells).toHaveLength(48)
-    expect(base64(new Uint8Array([77, 97, 110]))).toBe('TWFu')
-    expect(base64(new Uint8Array([77, 97]))).toBe('TWE=')
+  test('the route line shows only when it would change the model, in plain words', () => {
+    const r = { tier: 'normal', model: 'sonnet', isApplied: false, current: 'claude-opus-5-5' }
+    expect(routeLine(r, false)).toBe("routine prompt: sonnet would do (you're on claude-opus-5-5); /model sonnet to switch")
+    expect(routeLine({ ...r, isApplied: true }, false)).toBe('routine prompt: this turn runs on sonnet')
+    expect(routeLine(r, true)).toBeUndefined()
   })
 
   test('the diet drops chosen sections and never a pinned one', () => {
@@ -91,18 +89,16 @@ const step = ($: { turn: { step: (e: never) => AsyncIterable<unknown> } }, agent
   drain($.turn.step({ turnId: 't1', index: 0, model: 'claude-sonnet-5-5', messageCount: 1, agentId } as never))
 
 describe('router', () => {
-  test('suggest mode toasts the better model and leaves the turn alone', async ($, on) => {
-    const toasts: string[] = []
+  test('suggest mode names the better model in the band and leaves the turn alone', async ($, on) => {
     const steps: string[] = []
     engine(on, {
       'model.complete': () => ({ value: { isAnswered: true, text: 'trivial', usage: {} } }),
-      'ui.toast': ((_$: unknown, e: { text: string }) => (toasts.push(e.text), { value: undefined })) as never,
       'turn.step': stepRecorder(steps) as never,
     })
     await $.session.start(START)
     await $.prompt.submit({ text: 'rename foo to bar in utils.ts', ...USER } as never)
-    expect(toasts.join()).toContain('looks trivial')
-    expect(toasts.join()).toContain('haiku')
+    const ui = await $.ui.mount(band('desktop'))
+    expect(await ui.find({ text: /simple prompt: haiku would do/ })).toBeDefined()
     await step($ as never)
     expect(steps).toEqual(['main:claude-sonnet-5-5'])
   })
@@ -205,22 +201,28 @@ describe('weather', () => {
     for (const n of sizes) await ($ as { turn: { complete: (e: never) => Promise<unknown> } }).turn.complete(done(`t${n}`))
   }
 
-  test('the forecast line shows growth per turn and a sparkline: Raster on the terminal, text elsewhere', async ($, on) => {
+  test('the context line shows size once and growth per turn, the same on every surface', async ($, on) => {
     await runTurns($ as never, on, [100000, 106000, 112000])
-    const term = await $.ui.mount(band('terminal'))
-    expect(await term.find({ text: 'context 112k ▲ 6k/turn · ~7 turns to compaction' })).toBeDefined()
-    expect(await term.find({ text: 'context 112k ▲ 6k/turn · ~7 turns to compaction' })).toBeDefined()
-    expect(await term.find({ type: 'Raster' })).toBeDefined()
-    const desk = await $.ui.mount(band('desktop'))
-    expect(await desk.find({ type: 'Raster' })).toBeUndefined()
-    expect(await desk.find({ text: /[▁▂▃▄▅▆▇█]{3}/ })).toBeDefined()
+    for (const surface of ['terminal', 'desktop'] as const) {
+      const ui = await $.ui.mount(band(surface))
+      expect(await ui.find({ text: 'context 112k · +6k/turn' })).toBeDefined()
+      expect(await ui.find({ type: 'Raster' })).toBeUndefined()
+      await ui.unmount()
+    }
+  })
+
+  test('subscription windows from the engine measure join the context line', async ($, on) => {
+    await runTurns($ as never, on, [100000, 106000])
+    await $.session.measure({ context: { tokens: 106000, window: 200000 }, rateLimits: [{ kind: 'five_hour', percentUsed: 42 }], changed: [] } as never)
+    const ui = await $.ui.mount(band('desktop'))
+    expect(await ui.find({ text: 'context 106k · +6k/turn · 5h limit 42%' })).toBeDefined()
   })
 
   test('a compaction starts the trend over', async ($, on) => {
     await runTurns($ as never, on, [100000, 110000, 120000, 30000])
     const ui = await $.ui.mount(band('desktop'))
     expect(await ui.find({ text: /^context 30k/ })).toBeDefined()
-    expect(await ui.find({ text: /▲/ })).toBeUndefined()
+    expect(await ui.find({ text: /\/turn/ })).toBeUndefined()
   })
 
   test('a subagent turn does not enter the trend', async ($, on) => {
@@ -267,7 +269,7 @@ describe('diet', () => {
     expect(ids(await $.prompt.compose(FACTS))).toEqual(['intro', 'memory'])
     expect(kept['diet:/home/me/app']).toEqual(['tone'])
     const bar = await $.ui.mount(band('desktop'))
-    expect(await bar.find({ text: /diet: −1k\/request/ })).toBeDefined()
+    expect(await bar.find({ text: /diet saves ~1k per request/ })).toBeDefined()
     await ui.press({ key: 'toggle-tone' })
     expect(ids(await $.prompt.compose(FACTS))).toEqual(['intro', 'tone', 'memory'])
   })

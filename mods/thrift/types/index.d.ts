@@ -6,7 +6,11 @@ export type Route = {
   model: string | null
   /** True when the turn runs on `model`; false when it is only a suggestion. */
   isApplied: boolean
+  /** The session's model when the prompt was classified. */
+  current: string | null
 }
+
+export type UsageLimit = { kind: string; percentUsed: number }
 
 export type Coach = {
   tokens: number | null
@@ -21,6 +25,8 @@ export type Weather = {
   /** Tokens at which the engine compacts, or fills the window; null until read. */
   limit: number | null
   isCompaction: boolean
+  /** Subscription windows as the engine last measured them (five_hour, seven_day, spend_limit). */
+  limits: UsageLimit[]
 }
 
 export type DietSection = { id: string; tokens: number; isPinned: boolean }

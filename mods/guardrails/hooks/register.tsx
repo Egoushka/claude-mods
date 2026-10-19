@@ -79,6 +79,8 @@ export const register: Register = (on, options) => {
   const failures = new Map<string, number>()
   const edits = new Map<string, { old: string; new: string; flips: number }>()
   const approved = new Set<string>()
+  // The person's newest messages: a fork reads the transcript as last sent, which can miss one sent mid-turn.
+  let latest: string[] = []
 
   on('session.start', async ($, e, next) => {
     cwd = e.cwd
@@ -116,6 +118,7 @@ export const register: Register = (on, options) => {
 
   // The diff budget is sized per task by a quick classification unless one is fixed.
   on('prompt.submit', async ($, e, next) => {
+    if (!e.isMeta && e.text.trim()) latest = [...latest, e.text.trim().slice(0, 500)].slice(-3)
     if (budgetOption === 0 && !e.command && !e.isMeta && e.text.trim().length > 15) {
       void $.model
         .classify(e.text.slice(0, 2000), ['tiny', 'small', 'medium', 'large'], { model: 'haiku' })
@@ -167,7 +170,8 @@ export const register: Register = (on, options) => {
         const reply = await $.model.fork({
           prompt:
             `A guard paused this shell command (${kind}) before it runs:\n\n${command}\n\n` +
-            'Judge only from this conversation, counting standing instructions (CLAUDE.md, project rules) and tool output already in it as evidence. ' +
+            (latest.length ? `The person's newest messages, which may be newer than the transcript you see:\n${latest.map(t => `- ${t}`).join('\n')}\n\n` : '') +
+            'Judge only from this conversation and those messages, counting standing instructions (CLAUDE.md, project rules) and tool output already in it as evidence. ' +
             'ALLOW when the person asked for it, a standing rule calls for it, or the output shows it is the expected next step ' +
             '(say, deleting a branch whose merge the output shows). DENY when it could destroy work not shown to be saved elsewhere, ' +
             'or when it aims at the wrong target. Reply with exactly one line: "ALLOW: <reason>" or "DENY: <reason>".',

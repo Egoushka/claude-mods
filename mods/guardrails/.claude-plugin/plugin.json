@@ -1,19 +1,66 @@
 {
   "name": "guardrails",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Boundaries, secret masking, a second opinion before irreversible commands, shell autocorrect, loop breaker, diff budget",
-  "author": { "name": "Yehor Hrabovskyi" },
+  "author": {
+    "name": "Yehor Hrabovskyi"
+  },
   "license": "MIT",
   "types": "./types/index.d.ts",
   "userConfig": {
-    "boundaryPaths": { "type": "string", "title": "Boundary paths", "description": "Regex over the session's folder that marks a fenced session (say, employer code). Empty turns the boundary off.", "default": "" },
-    "fencedTools": { "type": "string", "title": "Tools blocked inside the boundary", "description": "Regex over tool names (mcp__server__tool) a fenced session may not call.", "default": "" },
-    "fencedHosts": { "type": "string", "title": "Hosts blocked inside the boundary", "description": "Regex over URLs and shell commands a fenced session may not reach.", "default": "" },
-    "insideOnlyTools": { "type": "string", "title": "Tools allowed only inside the boundary", "description": "Regex over tool names that only a fenced session may call (say, writes to a work memory).", "default": "" },
-    "maskSecrets": { "type": "boolean", "title": "Mask secrets", "description": "Mask keys, tokens and passwords in tool output before the model reads them.", "default": true },
-    "secondOpinion": { "type": "boolean", "title": "Second opinion", "description": "Before an irreversible shell command, ask a forked model call whether the conversation approved it.", "default": true },
-    "shellFixes": { "type": "boolean", "title": "Shell autocorrect", "description": "Rewrite or stop shell commands known to fail (gh after cd or in pipes, timeout on macOS, zsh = words).", "default": true },
-    "loopBreaker": { "type": "boolean", "title": "Loop breaker", "description": "Stop a command after 3 identical failures and an Edit that flips a file back and forth.", "default": true },
-    "diffBudget": { "type": "number", "title": "Diff budget", "description": "Changed lines before a warning; 0 sizes the budget per task with a quick Haiku call; -1 turns it off.", "default": 0 }
+    "boundaryPaths": {
+      "type": "string",
+      "title": "Boundary paths",
+      "description": "Regex over the session's folder that marks a fenced session (say, employer code). Empty turns the boundary off.",
+      "default": ""
+    },
+    "fencedTools": {
+      "type": "string",
+      "title": "Tools blocked inside the boundary",
+      "description": "Regex over tool names (mcp__server__tool) a fenced session may not call.",
+      "default": ""
+    },
+    "fencedHosts": {
+      "type": "string",
+      "title": "Hosts blocked inside the boundary",
+      "description": "Regex over URLs and shell commands a fenced session may not reach.",
+      "default": ""
+    },
+    "insideOnlyTools": {
+      "type": "string",
+      "title": "Tools allowed only inside the boundary",
+      "description": "Regex over tool names that only a fenced session may call (say, writes to a work memory).",
+      "default": ""
+    },
+    "maskSecrets": {
+      "type": "boolean",
+      "title": "Mask secrets",
+      "description": "Mask keys, tokens and passwords in tool output before the model reads them.",
+      "default": true
+    },
+    "secondOpinion": {
+      "type": "boolean",
+      "title": "Second opinion",
+      "description": "Before an irreversible shell command, ask a forked model call whether the conversation approved it.",
+      "default": true
+    },
+    "shellFixes": {
+      "type": "boolean",
+      "title": "Shell autocorrect",
+      "description": "Rewrite or stop shell commands known to fail (gh after cd or in pipes, timeout on macOS, zsh = words).",
+      "default": true
+    },
+    "loopBreaker": {
+      "type": "boolean",
+      "title": "Loop breaker",
+      "description": "Stop a command after 3 identical failures and an Edit that flips a file back and forth.",
+      "default": true
+    },
+    "diffBudget": {
+      "type": "number",
+      "title": "Diff budget",
+      "description": "Changed lines before a warning; 0 sizes the budget per task with a quick Haiku call; -1 turns it off.",
+      "default": 0
+    }
   }
 }

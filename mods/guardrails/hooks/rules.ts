@@ -42,10 +42,13 @@ const SECRETS: [string, RegExp][] = [
   ['stripe', /\b[rs]k_live_[A-Za-z0-9]{20,}/g],
   ['jwt', /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g],
   ['telegram-bot', /\b\d{8,10}:AA[A-Za-z0-9_-]{33}\b/g],
-  // key=value assignments of things named like secrets; keeps the name, masks the value
-  ['assignment', /\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API_KEY|APIKEY|PRIVATE_KEY)[A-Z0-9_]*)\s*[=:]\s*["']?([^\s"'`]{8,})/gi],
+  // KEY=value assignments of env-style names (upper case, so code like `const tokens = x` is left alone); keeps the name
+  ['assignment', /\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API_KEY|APIKEY|PRIVATE_KEY)[A-Z0-9_]*)\s*[=:]\s*["']?([^\s"'`]{8,})/g],
   ['conn-string', /\b(Password|Pwd)=([^;"'\s]{4,})/gi],
 ]
+
+// A dotted path or a call (process.env.TOKEN, getToken()) is code that reads a secret, not the secret.
+const isCodeLike = (value: string) => /^[A-Za-z_$][\w$]*(\.[\w$]+)+[;,)]*$|\(/.test(value)
 
 export function maskSecrets(text: string): { text: string; count: number } {
   let count = 0
@@ -55,7 +58,7 @@ export function maskSecrets(text: string): { text: string; count: number } {
       if (match.includes('[masked:')) return match
       count += 1
       if ((kind === 'assignment' || kind === 'conn-string') && name && value) {
-        if (/^\$\{?[A-Z_]+\}?$|^<.*>$|^\*+$|^(true|false|null|undefined)$/i.test(value)) {
+        if (/^\$\{?[A-Z_]+\}?$|^<.*>$|^\*+$|^(true|false|null|undefined)$/i.test(value) || isCodeLike(value)) {
           count -= 1
           return match
         }

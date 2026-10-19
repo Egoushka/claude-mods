@@ -65,7 +65,7 @@ describe('slop filter', () => {
 describe('evidence auditor', () => {
   const complete = (text: string) => ({ isAnswered: true, text, usage: { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } }) as never
 
-  test('shows the band, and Back them up submits a prompt listing the claims', async ($, on) => {
+  test('shows the band, and Ask for sources submits a prompt listing the claims', async ($, on) => {
     engine(on)
     const clock = mock.clock(on)
     let asked = ''
@@ -82,7 +82,7 @@ describe('evidence auditor', () => {
     await $.turn.complete({ answer: LONG, durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' } as never)
     await clock.settle()
     const ui = await $.ui.mount(BAND)
-    expect(await ui.find({ type: 'Text', text: /2 unbacked claims/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /2 claims in the last reply cite no source/ })).toBeDefined()
     expect(asked).toContain('file:line')
     await ui.press({ key: 'back' })
     expect(submitted).toContain('1. the handler calls parse()')

@@ -1,18 +1,65 @@
 {
   "name": "thrift",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Spend less on tokens and money: a model router, a context coach, a context forecast and an instruction diet",
-  "author": { "name": "Yehor Hrabovskyi" },
+  "author": {
+    "name": "Yehor Hrabovskyi"
+  },
   "license": "MIT",
   "types": "./types/index.d.ts",
   "userConfig": {
-    "routerMode": { "type": "string", "title": "Model router", "description": "off: no classification. suggest: a toast and a band line say which model fits the prompt. auto: the turn runs on that model.", "default": "suggest", "options": ["off", "suggest", "auto"] },
-    "trivialModel": { "type": "string", "title": "Model for trivial prompts", "description": "Alias (haiku, sonnet, opus) or a full model id.", "default": "haiku" },
-    "normalModel": { "type": "string", "title": "Model for normal prompts", "description": "Alias or full model id.", "default": "sonnet" },
-    "hardModel": { "type": "string", "title": "Model for hard prompts", "description": "Alias or full model id.", "default": "opus" },
-    "coachThreshold": { "type": "number", "title": "Context coach threshold (tokens)", "description": "The band offers a handoff or a compaction once the context passes this many tokens. 0 turns the coach off.", "default": 150000 },
-    "handoffPrompt": { "type": "string", "title": "Handoff prompt", "description": "What the Hand off button sends.", "default": "Write a handoff note for the next session in docs/HANDOFF.md: the goal, the current state, what is done and how you know, what was tried and failed, the next step and how to verify it. Then say the path." },
-    "weather": { "type": "boolean", "title": "Context forecast", "description": "A band line with the context size, its growth per turn and the turns left before compaction.", "default": true },
-    "diet": { "type": "boolean", "title": "Instruction diet", "description": "Adds /diet, a pane that drops system prompt sections for this project.", "default": true }
+    "routerMode": {
+      "type": "string",
+      "title": "Model router",
+      "description": "off: no classification. suggest: a toast and a band line say which model fits the prompt. auto: the turn runs on that model.",
+      "default": "suggest",
+      "options": [
+        "off",
+        "suggest",
+        "auto"
+      ]
+    },
+    "trivialModel": {
+      "type": "string",
+      "title": "Model for trivial prompts",
+      "description": "Alias (haiku, sonnet, opus) or a full model id.",
+      "default": "haiku"
+    },
+    "normalModel": {
+      "type": "string",
+      "title": "Model for normal prompts",
+      "description": "Alias or full model id.",
+      "default": "sonnet"
+    },
+    "hardModel": {
+      "type": "string",
+      "title": "Model for hard prompts",
+      "description": "Alias or full model id.",
+      "default": "opus"
+    },
+    "coachThreshold": {
+      "type": "number",
+      "title": "Context coach threshold (tokens)",
+      "description": "The band offers a handoff or a compaction once the context passes this many tokens. 0 turns the coach off.",
+      "default": 150000
+    },
+    "handoffPrompt": {
+      "type": "string",
+      "title": "Handoff prompt",
+      "description": "What the Hand off button sends.",
+      "default": "Write a handoff note for the next session in docs/HANDOFF.md: the goal, the current state, what is done and how you know, what was tried and failed, the next step and how to verify it. Then say the path."
+    },
+    "weather": {
+      "type": "boolean",
+      "title": "Context forecast",
+      "description": "A band line with the context size, its growth per turn and the turns left before compaction.",
+      "default": true
+    },
+    "diet": {
+      "type": "boolean",
+      "title": "Instruction diet",
+      "description": "Adds /diet, a pane that drops system prompt sections for this project.",
+      "default": true
+    }
   }
 }
