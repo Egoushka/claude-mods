@@ -200,4 +200,25 @@ describe('hooks', () => {
     await $.command.run({ command: 'cockpit', args: '' } as never)
     expect(calls).toBe(2)
   })
+
+  test('a gauge whose source is down is asked less and less often until it answers', { options: { gauges: JSON.stringify([{ label: 'Down', kind: 'mcp', server: 'ops', tool: 'depth', every: 5 }]) } }, async ($, on) => {
+    const clock = mock.clock(on)
+    engine(on, 0, true)
+    let calls = 0
+    let isUp = false
+    on('mcp.call', () => {
+      calls += 1
+      return (isUp ? { value: { content: [{ type: 'text', text: '3' }] } } : { value: { isError: true, content: [{ type: 'text', text: 'Server homelab unavailable' }] } }) as never
+    })
+    await $.session.start({ cwd: '/home/me/app', surface: null, isInteractive: true })
+    await clock.settle()
+    expect(calls).toBe(1)
+    for (let i = 0; i < 12; i += 1) await clock.advance(5000)
+    expect(calls).toBe(3)
+    isUp = true
+    await $.command.run({ command: 'cockpit', args: '' } as never)
+    expect(calls).toBe(4)
+    await clock.advance(5000)
+    expect(calls).toBe(5)
+  })
 })

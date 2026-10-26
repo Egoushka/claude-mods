@@ -17,7 +17,7 @@ describe('review helpers', () => {
     expect(hashText('a | 2 +-')).not.toBe(hashText('a | 3 +--'))
   })
 
-  test('the reviewer may run git diff, log and show and nothing else', () => {
+  test('the reviewer may run git diff, log, show, grep and blame and nothing else', () => {
     expect(isReviewerBash('git diff HEAD -- src/a.ts')).toBe(true)
     expect(isReviewerBash('git -C /repo log -n 5 --oneline')).toBe(true)
     expect(isReviewerBash('git show HEAD~1')).toBe(true)
@@ -27,6 +27,11 @@ describe('review helpers', () => {
     expect(isReviewerBash('git diff --output=x.patch')).toBe(false)
     expect(isReviewerBash('git log -c core.pager=sh')).toBe(false)
     expect(isReviewerBash('cat /etc/passwd')).toBe(false)
+    expect(isReviewerBash('git -C /repo grep -n parseFindings')).toBe(true)
+    expect(isReviewerBash('git blame -L 10,20 src/a.ts')).toBe(true)
+    expect(isReviewerBash('cd /repo && git grep x')).toBe(false)
+    expect(isReviewerBash('git grep -Ovim x')).toBe(false)
+    expect(isReviewerBash('git grep --open-files-in-pager=sh x')).toBe(false)
   })
 
   test('parses findings from fenced or bare JSON, drops low confidence, sorts', () => {

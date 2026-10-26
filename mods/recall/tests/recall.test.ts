@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { brief, describeCall, extractMemories, fillTemplate, likelyTests, mentionContext, nextCandidate, normalize, similarity, verbPrompt } from '../hooks/recall'
+import { brief, describeCall, extractMemories, fillTemplate, frictionLine, isRepeatInFile, likelyTests, mentionContext, nextCandidate, normalize, similarity, verbPrompt } from '../hooks/recall'
 
 const block = (t: string) => ({ content: [{ type: 'text', text: t }], isError: false })
 
@@ -272,6 +272,24 @@ describe('smart mentions', () => {
     const r = await $.prompt.mention({ mention: 'a.ts', path: '/repo/a.ts' })
     expect(r.context).toBeUndefined()
     expect(ran.length).toBe(0)
+  })
+})
+
+describe('friction file dedupe', () => {
+  const at = Date.parse('2026-10-20T00:30:00Z')
+  const file = [
+    frictionLine(Date.parse('2026-10-20T00:06:00Z'), 'errors', 'mcp__homelab__gatus_list_endpoint_statuses failed 2 times: Server homelab unavailable'),
+    frictionLine(Date.parse('2026-10-19T21:14:00Z'), 'denied', 'Bash git -C x grep y: rival: the reviewer may run git diff only.'),
+  ].join('\n')
+
+  test('the same failing tool within the hour is a repeat, from any session', () => {
+    expect(isRepeatInFile(file, 'errors', 'mcp__homelab__gatus_list_endpoint_statuses', at)).toBe(true)
+  })
+
+  test('another tool, another kind or an older line is not', () => {
+    expect(isRepeatInFile(file, 'errors', 'mcp__homelab__alertmanager_list_alerts', at)).toBe(false)
+    expect(isRepeatInFile(file, 'denied', 'mcp__homelab__gatus_list_endpoint_statuses', at)).toBe(false)
+    expect(isRepeatInFile(file, 'denied', 'rival: the reviewer may run git diff only.', at)).toBe(false)
   })
 })
 

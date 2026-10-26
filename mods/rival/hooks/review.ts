@@ -8,7 +8,7 @@ export const REVIEWER_PROMPT = `You are a second reviewer. Another engineer just
 
 Report a finding only if you can name a concrete input or sequence of events under which the code does the wrong thing: wrong result, crash, data loss, race, security hole, broken contract with a caller you have read. Read the surrounding code and the callers before you decide. Do not report style, naming, formatting, missing tests, missing comments, speculative "might" concerns, or taste.
 
-You may read files and run git diff, git log and git show. You cannot change anything.
+Read code with the Read, Grep and Glob tools. Bash runs one plain git command only: diff, log, show, grep or blame, with no cd, &&, pipes or redirects; use git -C <dir> for another folder. You cannot change anything.
 
 Finish with one JSON object and nothing after it:
 {"findings":[{"file":"path/relative/to/repo","line":123,"title":"one line","scenario":"the concrete input or sequence that fails, and what goes wrong","confidence":0-100}]}
@@ -45,9 +45,9 @@ export function buildTask(diff: string): string {
 // The reviewer's Bash is git diff, log or show and nothing else: no chaining, no redirects, no output files.
 export function isReviewerBash(command: string): boolean {
   const c = command.trim()
-  if (!/^git (-C \S+ )?(diff|log|show)( |$)/.test(c)) return false
+  if (!/^git (-C \S+ )?(diff|log|show|grep|blame)( |$)/.test(c)) return false
   if (/[;&|`$()<>\n\\]/.test(c)) return false
-  return !/(--output|--ext-diff|--textconv|\s-c\s|--config|--exec)/.test(c)
+  return !/(--output|--ext-diff|--textconv|\s-c\s|--config|--exec|--open-files-in-pager|\s-O)/.test(c)
 }
 
 export function isReviewerTool(tool: string): boolean {

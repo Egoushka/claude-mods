@@ -9,6 +9,7 @@ import {
   extractMemories,
   fillTemplate,
   frictionLine,
+  isRepeatInFile,
   likelyTests,
   memoryContext,
   mentionContext,
@@ -73,14 +74,15 @@ async function recallMemories($: EngineInterface, s: Settings, prompt: string): 
   return { query: brief(prompt, 80), items, at: await $.clock.now() }
 }
 
-async function recordFriction($: EngineInterface, s: Settings, project: string, kind: FrictionKind, evidence: string) {
+async function recordFriction($: EngineInterface, s: Settings, project: string, kind: FrictionKind, evidence: string, key?: string) {
   const entry: FrictionEntry = { at: await $.clock.now(), kind, evidence: brief(evidence, 200) }
   const list = await update($, friction, old => [...old, entry].slice(-MAX_FRICTION))
   await $.store.set(`friction:${project}`, list).catch(() => undefined)
   if (!s.frictionFile) return
-  const line = `${frictionLine(entry.at, kind, entry.evidence)}\n`
-  const old = await $.fs.read(s.frictionFile).catch(() => '')
-  await $.fs.write(s.frictionFile, (typeof old === 'string' ? old : '') + line).catch(() => undefined)
+  const read = await $.fs.read(s.frictionFile).catch(() => '')
+  const old = typeof read === 'string' ? read : ''
+  if (key && isRepeatInFile(old, kind, brief(key, 1000).slice(0, 60), entry.at)) return
+  await $.fs.write(s.frictionFile, `${old}${frictionLine(entry.at, kind, entry.evidence)}\n`).catch(() => undefined)
 }
 
 const groupsKey = (project: string) => `corrections:${project}`
@@ -280,11 +282,11 @@ export const register: Register = (on, options) => {
     const ran = await next(e)
     const about = describeCall(String(e.tool), e as unknown as Record<string, unknown>)
     if (ran.deny !== undefined) {
-      await recordFriction($, s, project, 'denied', `${about}: ${ran.deny}`)
+      await recordFriction($, s, project, 'denied', `${about}: ${ran.deny}`, ran.deny)
     } else if (ran.isError) {
       const n = (failures.get(about) ?? 0) + 1
       failures.set(about, n)
-      if (n === 2 || n === 5) await recordFriction($, s, project, 'errors', `${about} failed ${n} times: ${ran.text ?? ''}`)
+      if (n === 2 || n === 5) await recordFriction($, s, project, 'errors', `${about} failed ${n} times: ${ran.text ?? ''}`, about)
     } else failures.delete(about)
     return ran
   }).catch(($, e, next) => next(e))

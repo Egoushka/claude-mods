@@ -122,15 +122,25 @@ async function fetchRaw($: EngineInterface, spec: GaugeSpec): Promise<string> {
 
 // A gauge whose source hangs (an MCP or HTTP call has no timeout) must not stack one more call every period.
 const inFlight = new Set<string>()
+// A gauge whose source is down skips 1, 3, 7, then 15 scheduled ticks between tries, so an outage is not polled from every session.
+const failing = new Map<string, { count: number; skip: number }>()
 
-async function refreshGauge($: EngineInterface, id: string, spec: GaugeSpec) {
+async function refreshGauge($: EngineInterface, id: string, spec: GaugeSpec, isScheduled = false) {
+  const down = failing.get(id)
+  if (isScheduled && down && down.skip > 0) {
+    down.skip -= 1
+    return
+  }
   if (inFlight.has(id)) return
   inFlight.add(id)
   try {
     const picked = pickValue(await fetchRaw($, spec), spec.pick)
     if (picked === undefined) return await failReading($, id, spec.pick ? `nothing matched ${spec.pick}` : 'empty answer')
+    failing.delete(id)
     await setReading($, id, clip(picked, 60), toNumber(picked))
   } catch (err) {
+    const count = (failing.get(id)?.count ?? 0) + 1
+    failing.set(id, { count, skip: 2 ** Math.min(count, 4) - 1 })
     await failReading($, id, clip(err instanceof Error ? err.message : String(err), 80))
   } finally {
     inFlight.delete(id)
@@ -204,12 +214,13 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     for (const t of timers) t.cancel()
+    failing.clear()
     await update($, readings, () => ({}))
     await update($, configError, () => parsed.errors.join('; '))
     await $.command.register({ name: 'cockpit', description: 'Open the Cockpit pane (cockpit refresh: refresh every gauge now)' })
     timers = [
       $.clock.every(refreshMs, () => void refreshBuiltins($)),
-      ...gauges.map((g, i) => $.clock.every(g.every * 1000, () => void refreshGauge($, `g${i}`, g))),
+      ...gauges.map((g, i) => $.clock.every(g.every * 1000, () => void refreshGauge($, `g${i}`, g, true))),
     ]
     void refreshAll($, gauges)
     return next(e)
