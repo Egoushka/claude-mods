@@ -125,7 +125,7 @@ export const register: Register = (on, options) => {
     ctx.cwd = e.cwd
     await update($, review, () => initial)
     if (ctx.isOn) {
-      // Read-only by tool list; the tool.call hook below narrows Bash to git diff, log and show.
+      // Read-only by tool list; the tool.call hook below narrows Bash to git diff, log, show, grep and blame.
       await $.agent
         .register({
           name: 'reviewer',
@@ -152,7 +152,7 @@ export const register: Register = (on, options) => {
     if (!isReviewer) return next(e)
     const tool = String(e.tool)
     if (!isReviewerTool(tool)) return { deny: 'rival: the reviewer is read-only.' }
-    if (e.tool === 'Bash' && !isReviewerBash(e.command)) return { deny: 'rival: the reviewer may run git diff, git log and git show only.' }
+    if (e.tool === 'Bash' && !isReviewerBash(e.command)) return { deny: 'rival: Bash runs one plain git diff, log, show, grep or blame (git -C <dir> for another folder; no cd, && or pipes). Read files with Read, Grep and Glob.' }
     return next(e)
   }).catch(($, e, next) => (next.called ? next(e) : { deny: 'rival: its guard failed; retry once.' }))
 

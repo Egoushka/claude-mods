@@ -178,6 +178,18 @@ export function frictionLine(at: number, kind: string, evidence: string): string
   return `- ${new Date(at).toISOString().slice(0, 16).replace('T', ' ')} **${kind}**: ${evidence}`
 }
 
+// True when the file's recent lines already hold the same kind of event about `key` within `windowMs`:
+// one outage or one blocked command style then costs one line, not one per session per retry.
+export function isRepeatInFile(file: string, kind: string, key: string, at: number, windowMs = 3_600_000): boolean {
+  const marker = ` **${kind}**: `
+  for (const line of file.split('\n').slice(-200)) {
+    if (!line.includes(marker) || !line.includes(key)) continue
+    const when = Date.parse(`${line.slice(2, 18).replace(' ', 'T')}:00Z`)
+    if (Number.isFinite(when) && at - when < windowMs) return true
+  }
+  return false
+}
+
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…` : text)
 
 export function quoted(text: string): string {
