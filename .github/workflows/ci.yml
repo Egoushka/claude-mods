@@ -17,10 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
-      - run: npm install -g @anthropic-ai/claude-code@2.1.303
+      - run: npm install -g @anthropic-ai/claude-code@2.1.303  # zizmor: ignore[adhoc-packages] exact version pin; claude-code is the tool the mods are validated against
       # scripts/check.sh also type-checks, but that needs claude-code.d.ts, which the
       # engine writes into a loaded mod and the repo does not hold. CI runs the rest.
       - name: Validate and test every mod
