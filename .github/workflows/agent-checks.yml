@@ -10,5 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 2
       - uses: Egoushka/agent-checks@v0.1.1
