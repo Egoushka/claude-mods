@@ -25,12 +25,11 @@ function bump($: EngineInterface, patch: (s: GuardStats) => Partial<GuardStats>)
 
 async function refreshStatus($: EngineInterface) {
   const s = await read($, stats)
+  // Only what needs a look: counters of silent fixes (masked, corrected) stay out of the line.
   const parts: string[] = []
   if (s.isInside) parts.push('inside boundary')
-  if (s.masked) parts.push(`${s.masked} masked`)
-  if (s.corrected) parts.push(`${s.corrected} corrected`)
   if (s.denied) parts.push(`${s.denied} stopped`)
-  if (s.added || s.removed) parts.push(`diff +${s.added} −${s.removed}${s.budget ? ` of ${s.budget}` : ''}`)
+  if (s.budget && s.added + s.removed > s.budget) parts.push(`diff +${s.added} −${s.removed}, over ${s.budget}`)
   $.ui.status(parts.length ? `guard: ${parts.join(' · ')}` : undefined)
 }
 

@@ -13,6 +13,7 @@
     "minWords": { "type": "number", "title": "Minimum words for recall", "description": "Prompts shorter than this skip memory recall: \"ok go\" or \"merge #877\" return unrelated memories.", "default": 6 },
     "smartMentions": { "type": "boolean", "title": "Smart @-mentions", "description": "For an @file, add its last 5 commits, likely test files and files that reference it.", "default": true },
     "harvestCorrections": { "type": "boolean", "title": "Correction harvester", "description": "Spot prompts that correct the assistant (a Haiku call per prompt) and offer a rule when the same correction repeats.", "default": true },
+    "showMemoryRow": { "type": "boolean", "title": "Memory row above the prompt", "description": "Show an \"N memories [Show]\" row above the prompt after each recall. Off by default; /why and the memories pane still work.", "default": false },
     "instructionsFile": { "type": "string", "title": "Instructions file", "description": "File a drafted rule is proposed as an edit to.", "default": "CLAUDE.md" },
     "frictionFile": { "type": "string", "title": "Friction file", "description": "Markdown file to append friction events to. Empty keeps them in the plugin store only.", "default": "" },
     "retainServer": { "type": "string", "title": "Retain server", "description": "MCP server that /remember saves to. Empty stores notes in the plugin store.", "default": "" },
