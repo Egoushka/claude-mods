@@ -1,0 +1,12 @@
+{
+  "name": "handoff-autopilot",
+  "version": "0.1.0",
+  "description": "When a session has grown long, drafts the handoff for you from the session itself and hands you the prompt that starts the next one",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "atPercent": { "type": "number", "title": "Offer a handoff at this context use (%)", "description": "Once the context window is this full, one row above the prompt offers to draft a handoff. 0 turns the offer off; /handoff-draft still works.", "default": 60 },
+    "file": { "type": "string", "title": "Draft file", "description": "Where the draft is written, relative to the session's folder. It is overwritten each time, and never touches a HANDOFF.md of your own.", "default": "docs/HANDOFF.draft.md" }
+  }
+}

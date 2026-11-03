@@ -29,6 +29,12 @@
       "version": "0.1.2"
     },
     {
+      "name": "handoff-autopilot",
+      "source": "./mods/handoff-autopilot",
+      "description": "When a session has grown long, drafts the handoff from the session itself and gives you the prompt that starts the next one",
+      "version": "0.1.0"
+    },
+    {
       "name": "ledger",
       "source": "./mods/ledger",
       "description": "Active hours per repo with a /hours pane, CSV export and a monthly goal line; drafts a build-in-public post when you merge a PR",
