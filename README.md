@@ -7,7 +7,7 @@
 
 # claude-mods
 
-> Ten Claude Code mods you install one at a time: guardrails, a model router, a slop filter, memory recall, a live pane and more.
+> Eleven Claude Code mods you install one at a time: guardrails, a model router, a slop filter, memory recall, a live pane and more.
 
 <!-- readme:status:start -->
 **Active**. I work on it this month.
@@ -21,7 +21,7 @@ flowchart LR
   tc --> tool[Shell, Edit, MCP tools]
   tool --> sa[session.append<br/>guardrails masks secrets · voice cleans replies]
   sa --> model
-  model --> tcomp[turn.complete<br/>rival · ledger · cockpit]
+  model --> tcomp[turn.complete<br/>rival · ledger · cockpit · switchboard]
   tcomp --> ui[ui.render<br/>band above the prompt · panes]
 ```
 
@@ -47,6 +47,7 @@ own model requests.
 | [forge](mods/forge) | Claude can propose a new mod; nothing is written until you approve it in a dialog | none |
 | [ledger](mods/ledger) | Active hours per repo, `/hours`, CSV export, a monthly goal; drafts a post when a PR merges (never posts it) | one draft per merge, opt-in |
 | [replay](mods/replay) | `/replay` steps through a session's file changes turn by turn | none |
+| [switchboard](mods/switchboard) | One row above the prompt when another session has waited on you; `/board` lists every live session and its state | none |
 
 Every personal value (hosts, MCP server names, paths) is a setting that defaults to off. Each mod's README lists its
 settings and what it costs.

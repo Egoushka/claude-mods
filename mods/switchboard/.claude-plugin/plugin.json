@@ -1,0 +1,13 @@
+{
+  "name": "switchboard",
+  "version": "0.1.0",
+  "description": "See your other Claude Code sessions at a glance: which one is waiting on you, which is working, which is done",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "dir": { "type": "string", "title": "Shared folder", "description": "Folder where every session leaves a small status file. Empty means ~/.claude/switchboard. Sessions that share a folder see each other.", "default": "" },
+    "showBand": { "type": "boolean", "title": "Row above the prompt", "description": "Show one row above the prompt while another session is waiting on you. Off leaves only the /board pane.", "default": true },
+    "minWaitSeconds": { "type": "number", "title": "Wait before the row appears (seconds)", "description": "A session must wait this long before it shows in the row, so a quick approval never flashes it.", "default": 30 }
+  }
+}

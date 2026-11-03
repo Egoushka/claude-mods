@@ -1,0 +1,164 @@
+import { atom, read, update } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
+
+import type { BoardRow, SessionState } from '../types'
+import { CLEAN_MS, WORDS, ago, bandText, isLive, order, parseRow, rowName, waitingLong } from './board'
+
+const PANE = 'switchboard'
+const TICK_MS = 15_000
+const others = atom({ plugin: 'switchboard', key: 'others' } as const, [], { shape: 'rows-1' })
+
+type Engine = EngineInterface
+
+// What this session knows about itself; the reload starts it over.
+const me = { dir: '', id: '', name: 'session', state: 'idle' as SessionState, since: 0, context: undefined as number | undefined }
+const cfg = { custom: '' }
+
+async function folder($: Engine): Promise<string> {
+  if (me.dir) return me.dir
+  const home = (await $.env.get('HOME')) ?? ''
+  me.dir = cfg.custom || `${home}/.claude/switchboard`
+  return me.dir
+}
+
+function mine(now: number): BoardRow {
+  return { id: me.id, name: me.name, state: me.state, since: me.since, at: now, ...(me.context === undefined ? {} : { context: me.context }) }
+}
+
+async function heartbeat($: Engine): Promise<void> {
+  if (!me.id) return
+  const row = mine(await $.clock.now())
+  await $.fs.write(`${await folder($)}/${me.id}.json`, JSON.stringify(row)).catch(() => undefined)
+}
+
+async function scan($: Engine): Promise<void> {
+  const now = await $.clock.now()
+  const base = await folder($)
+  const files = await $.fs.list(base).catch(() => [])
+  const rows: BoardRow[] = []
+  for (const f of files) {
+    if (f.kind !== 'file' || !f.name.endsWith('.json') || f.name === `${me.id}.json`) continue
+    const text = await $.fs.read(`${base}/${f.name}`).catch(() => '')
+    const row = typeof text === 'string' ? parseRow(text) : undefined
+    if (!row) continue
+    if (isLive(row, now)) rows.push(row)
+    else if (now - row.at > CLEAN_MS) void $.process.run(['rm', '-f', `${base}/${f.name}`]).catch(() => undefined)
+  }
+  const next = order(rows)
+  await update($, others, was => (JSON.stringify(was) === JSON.stringify(next) ? was : next))
+}
+
+async function tick($: Engine): Promise<void> {
+  const usage = await $.session.usage().catch(() => undefined)
+  me.context = usage?.context.percent
+  const git = await $.process.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], { timeoutMs: 3000 }).catch(() => undefined)
+  me.name = rowName(await $.session.root(), git?.exitCode === 0 ? git.stdout.trim() : undefined)
+  await heartbeat($)
+  await scan($)
+}
+
+async function move($: Engine, to: SessionState): Promise<void> {
+  if (me.state === to) return
+  me.state = to
+  me.since = await $.clock.now()
+  await heartbeat($)
+}
+
+const color = (s: SessionState) => (s === 'waiting' ? 'warning' : s === 'busy' ? 'success' : 'inactive')
+
+export const register: Register = (on, options) => {
+  const showBand = options.showBand !== false
+  const minWait = typeof options.minWaitSeconds === 'number' ? options.minWaitSeconds : 30
+  cfg.custom = typeof options.dir === 'string' ? options.dir.trim() : ''
+
+  on('session.start', async ($, e, next) => {
+    me.id = await $.session.id()
+    me.since = await $.clock.now()
+    await $.command.register({ name: 'board', description: 'Show your running Claude Code sessions and which one needs you' })
+    await tick($)
+    void $.clock.every(TICK_MS, () => tick($))
+    return next(e)
+  })
+
+  on('session.end', async ($, e, next) => {
+    if (me.id) await $.process.run(['rm', '-f', `${await folder($)}/${me.id}.json`]).catch(() => undefined)
+    return next(e)
+  })
+
+  on('prompt.submit', async ($, e, next) => {
+    await move($, 'busy').catch(() => undefined)
+    return next(e)
+  })
+
+  on('turn.step', async function* ($, e, next) {
+    if (e.agentId === undefined) await move($, 'busy').catch(() => undefined)
+    return yield* next(e)
+  })
+
+  on('tool.call', { tool: 'AskUserQuestion' }, async ($, e, next) => {
+    await move($, 'waiting').catch(() => undefined)
+    return next(e)
+  })
+
+  on('tool.check', async ($, e, next) => {
+    const verdict = await next(e)
+    if (verdict.decision === 'ask' && e.agentId === undefined) await move($, 'waiting').catch(() => undefined)
+    return verdict
+  })
+
+  on('turn.complete', async ($, e, next) => {
+    if (e.agentId === undefined) await move($, 'idle').catch(() => undefined)
+    return next(e)
+  })
+
+  on('command.run', { command: 'board' }, async $ => {
+    await $.ui.open({ id: PANE, title: 'Sessions', focus: true })
+    return { text: 'Sessions pane opened.' }
+  })
+
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (!showBand || e.props.hasSurvey) return next(e)
+    const now = await $.clock.now()
+    const waiting = waitingLong(await read($, others), now, minWait)
+    if (waiting.length === 0) return next(e)
+
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const text = bandText(waiting, now, Math.max(20, e.props.bodyColumns - 12))
+    return (
+      <Box>
+        <Text color="warning">{text} </Text>
+        <Button key="board" label="Open" onPress={() => $.ui.open({ id: PANE, title: 'Sessions', focus: true })} />
+      </Box>
+    )
+  })
+
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
+    const { Box, Text } = $.ui.resolve(e)
+    const now = await $.clock.now()
+    const rows = await read($, others)
+    const all = order([mine(now), ...rows])
+    const width = Math.min(34, Math.max(12, ...all.map(r => r.name.length)))
+
+    return (
+      <Box flexDirection="column">
+        {all.map(r => (
+          <Text key={r.id}>
+            <Text color={color(r.state)}>● </Text>
+            <Text mono>{r.name.slice(0, width).padEnd(width)}</Text>
+            <Text mono color={color(r.state)}>
+              {'  '}
+              {WORDS[r.state].padEnd(9)}
+            </Text>
+            <Text mono dimColor>
+              {' '}
+              {ago(now - r.since).padStart(4)}
+              {r.context === undefined ? '' : `  ctx ${Math.round(r.context)}%`}
+              {r.id === me.id ? '  this one' : ''}
+            </Text>
+          </Text>
+        ))}
+        {rows.length === 0 && <Text dimColor>No other sessions are running.</Text>}
+      </Box>
+    )
+  })
+}
