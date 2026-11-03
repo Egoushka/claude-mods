@@ -53,6 +53,12 @@
       "version": "0.1.1"
     },
     {
+      "name": "redline",
+      "source": "./mods/redline",
+      "description": "A row above the prompt only when your health command or the branch's CI is red, with Fix and Hide; silent when green",
+      "version": "0.1.0"
+    },
+    {
       "name": "replay",
       "source": "./mods/replay",
       "description": "Scrub through a session's file changes turn by turn, each drawn as a unified diff",
