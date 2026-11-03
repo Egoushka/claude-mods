@@ -65,6 +65,12 @@
       "version": "0.1.2"
     },
     {
+      "name": "tool-diet",
+      "source": "./mods/tool-diet",
+      "description": "Move tools you never use behind ToolSearch so their schemas stop riding along on every turn",
+      "version": "0.1.0"
+    },
+    {
       "name": "voice",
       "source": "./mods/voice",
       "description": "Plain replies backed by evidence: strips filler and AI tells from the model's text, and flags factual claims that cite no file:line, command output or URL",

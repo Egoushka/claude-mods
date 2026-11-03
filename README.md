@@ -39,6 +39,7 @@ own model requests.
 |---|---|---|
 | [guardrails](mods/guardrails) | Keeps work and personal tools apart, masks secrets in tool output, asks a second model before irreversible commands (force push, `rm -rf`, SQL drop), fixes common shell mistakes, stops retry loops, shows a diff budget | a fork per irreversible command; Haiku per prompt for the budget |
 | [thrift](mods/thrift) | Tells you when a cheaper model would do, coaches and forecasts context use, `/diet` drops system-prompt sections you don't need | Haiku per prompt (router) |
+| [tool-diet](mods/tool-diet) | Moves tools you never use behind ToolSearch so their schemas leave the prompt; invisible, you list the tools | none |
 | [voice](mods/voice) | Strips filler and AI tells from replies; flags claims that cite no file:line, command output or URL | Haiku per long answer |
 | [recall](mods/recall) | Adds memories from your memory MCP server to each prompt, smarter @-mentions, turns repeated corrections into rules, `/verify` `/remember` `/why` on a selection | Haiku per prompt |
 | [cockpit](mods/cockpit) | `/cockpit` pane with cost, context, git, PR checks and your own gauges; an inbox for messages from other sessions; a summary when you come back | optional Haiku summary |

@@ -1,0 +1,10 @@
+{
+  "name": "tool-diet",
+  "version": "0.1.0",
+  "description": "Move tools you never use behind ToolSearch so their schemas stop riding along on every turn",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "userConfig": {
+    "tools": { "type": "string", "title": "Tools to move behind ToolSearch", "description": "Comma-separated tool names. A trailing * matches a prefix, e.g. Workflow, Artifact, mcp__homelab__umami_*. Empty means the mod does nothing.", "default": "" }
+  }
+}
