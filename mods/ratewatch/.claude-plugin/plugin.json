@@ -1,0 +1,13 @@
+{
+  "name": "ratewatch",
+  "version": "0.1.0",
+  "description": "One toast when a usage window (5-hour or weekly) passes 80%, with the sessions that spent the most",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "percent": { "type": "number", "title": "Warn at (percent)", "description": "Toast once per window when its usage passes this. Between 10 and 100.", "default": 80 },
+    "share": { "type": "boolean", "title": "Name the sessions that spent the most", "description": "Each session writes its repo name and cost so far to a small file in the shared folder, so the toast can say which sessions spent the most. Off: the toast only says this session's cost.", "default": true },
+    "dir": { "type": "string", "title": "Shared folder", "description": "Where those files go. Empty means ~/.claude/ratewatch. Sessions that use the same folder see each other.", "default": "" }
+  }
+}

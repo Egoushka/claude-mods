@@ -35,6 +35,12 @@
       "version": "0.1.0"
     },
     {
+      "name": "ratewatch",
+      "source": "./mods/ratewatch",
+      "description": "One toast when the 5-hour or weekly usage window passes 80%, naming the sessions that spent the most",
+      "version": "0.1.0"
+    },
+    {
       "name": "recall",
       "source": "./mods/recall",
       "description": "Context you would otherwise retype: memory recall per prompt, smarter @-mentions, repeated-correction rules, a friction log and selection verbs",
