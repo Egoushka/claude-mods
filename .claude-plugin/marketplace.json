@@ -71,6 +71,12 @@
       "version": "0.1.0"
     },
     {
+      "name": "runstrip",
+      "source": "./mods/runstrip",
+      "description": "A row above the prompt while a chargehand run you started is going, with the cost so far and a toast when it ends",
+      "version": "0.1.0"
+    },
+    {
       "name": "switchboard",
       "source": "./mods/switchboard",
       "description": "See your other Claude Code sessions at a glance: a row appears only when one is waiting on you, and /board lists them all",

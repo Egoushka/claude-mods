@@ -1,0 +1,12 @@
+{
+  "name": "runstrip",
+  "version": "0.1.0",
+  "description": "A row above the prompt listing the chargehand runs this session started and has not seen finish, with the cost so far",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "servers": { "type": "string", "title": "Chargehand MCP servers", "description": "Names of the chargehand MCP servers as /mcp lists them, comma separated, e.g. chargehand. Empty means the mod does nothing.", "default": "" },
+    "everySeconds": { "type": "number", "title": "Check every (seconds)", "description": "How often each unfinished run is read. At least 5.", "default": 15 }
+  }
+}
