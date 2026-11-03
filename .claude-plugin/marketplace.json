@@ -53,6 +53,12 @@
       "version": "0.1.0"
     },
     {
+      "name": "switchboard",
+      "source": "./mods/switchboard",
+      "description": "See your other Claude Code sessions at a glance: a row appears only when one is waiting on you, and /board lists them all",
+      "version": "0.1.0"
+    },
+    {
       "name": "thrift",
       "source": "./mods/thrift",
       "description": "Spend less on tokens and money: a model router, a context coach, a context forecast and an instruction diet",
