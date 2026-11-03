@@ -42,6 +42,7 @@ own model requests.
 | [tool-diet](mods/tool-diet) | Moves tools you never use behind ToolSearch so their schemas leave the prompt; invisible, you list the tools | none |
 | [voice](mods/voice) | Strips filler and AI tells from replies; flags claims that cite no file:line, command output or URL | Haiku per long answer |
 | [recall](mods/recall) | Adds memories from your memory MCP server to each prompt, smarter @-mentions, turns repeated corrections into rules, `/verify` `/remember` `/why` on a selection | Haiku per prompt |
+| [ratewatch](mods/ratewatch) | One toast when the 5-hour or weekly usage window passes 80%, naming the sessions that spent the most | none |
 | [cockpit](mods/cockpit) | `/cockpit` pane with cost, context, git, PR checks and your own gauges; an inbox for messages from other sessions; a summary when you come back | optional Haiku summary |
 | [handoff-autopilot](mods/handoff-autopilot) | When a session passes 60% of its context, one row offers to draft the handoff from the session itself and copies the prompt that starts the next one | one fork of the session per draft, on your click |
 | [cli-tools](mods/cli-tools) | Shell commands from your settings become typed tools the model sees from the first turn | none |
