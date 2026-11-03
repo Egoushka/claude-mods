@@ -1,0 +1,15 @@
+{
+  "name": "redline",
+  "version": "0.1.0",
+  "description": "A row above the prompt that appears only when something is red: a failing check on this branch's PR, or your own health command",
+  "author": { "name": "Yehor Hrabovskyi" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "watchCi": { "type": "boolean", "title": "Watch this branch's PR checks", "description": "Show the row when `gh pr checks` reports a failure on the current branch's pull request. Needs the gh CLI; silent without it or without a PR.", "default": true },
+    "healthCommand": { "type": "string", "title": "Health command (JSON argv)", "description": "A command to run on a timer, as a JSON array, e.g. [\"my-status\", \"--short\"]. Empty means no health check. Red when it exits non-zero, or, with a pattern below, when its output does not match.", "default": "" },
+    "healthOkPattern": { "type": "string", "title": "Health OK pattern (regex)", "description": "A regular expression that the command's output matches while everything is fine. With it, a command that fails to run stays silent instead of showing red. Empty means judge by the exit code.", "default": "" },
+    "healthLabel": { "type": "string", "title": "Health label", "description": "Word that starts the health part of the row.", "default": "Health" },
+    "everySeconds": { "type": "number", "title": "Check every (seconds)", "description": "How often both checks run. At least 30.", "default": 120 }
+  }
+}

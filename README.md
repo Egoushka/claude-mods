@@ -51,6 +51,7 @@ own model requests.
 | [ledger](mods/ledger) | Active hours per repo, `/hours`, CSV export, a monthly goal; drafts a post when a PR merges (never posts it) | one draft per merge, opt-in |
 | [replay](mods/replay) | `/replay` steps through a session's file changes turn by turn | none |
 | [switchboard](mods/switchboard) | One row above the prompt when another session has waited on you; `/board` lists every live session and its state | none |
+| [redline](mods/redline) | One row above the prompt when your own health command or the branch's CI is red, with **Fix** (fills a prompt) and **Hide**; silent when green | none |
 
 Every personal value (hosts, MCP server names, paths) is a setting that defaults to off. Each mod's README lists its
 settings and what it costs.
