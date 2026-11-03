@@ -8,7 +8,7 @@ Gives Claude the context you would otherwise retype. Five parts, each on its own
 
 ## What it does
 
-**Memory ghost.** On every prompt you type, it calls a memory MCP tool with your prompt and adds the answer to what the model reads (never shown in the transcript). The band above the prompt shows "N memories" with a **Show** button that opens a pane listing them. Off while `memoryServer` is empty. The call is cut off after 3 seconds, so a slow server never stalls a prompt; a failing or empty answer adds nothing. The result is read as a JSON list (also `{results|memories|items: [...]}`) or, failing that, as paragraphs and bullets, and capped at `maxChars`.
+**Memory ghost.** On every prompt you type, it calls a memory MCP tool with your prompt and adds the answer to what the model reads (never shown in the transcript). With `showMemoryRow` on, a band above the prompt shows "N memories" with a **Show** button that opens a pane listing them; it is off by default so the prompt area stays quiet. Off while `memoryServer` is empty. The call is cut off after 3 seconds, so a slow server never stalls a prompt; a failing or empty answer adds nothing. The result is read as a JSON list (also `{results|memories|items: [...]}`) or, failing that, as paragraphs and bullets, and capped at `maxChars`.
 
 **Smart @-mentions.** For `@file`, adds under the file: its last 5 commits (`git log`), likely test files (git-tracked files whose name holds the file's name and looks like a test: `*.test.*`, `*_spec.*`, `test_*`, `*Tests.*`, `tests/` folders) and up to 8 files that mention its name (`git grep -l -w`). Outside a git repo it adds nothing. Name matching is a heuristic: a file named `cache` also matches `cache_test`, and a common word as a file name makes the "mentioned by" list noisy.
 
@@ -25,6 +25,7 @@ Gives Claude the context you would otherwise retype. Five parts, each on its own
 | `memoryServer` | empty (off) | MCP server name as `/mcp` lists it |
 | `recallTool`, `recallArgs` | `recall`, `{"query": "{{query}}"}` | tool and a JSON template; `{{query}}` is replaced in every string |
 | `maxChars` | 2000 | memory text added per prompt |
+| `showMemoryRow` | false | show the "N memories [Show]" band after each recall |
 | `minWords` | 6 | prompts with fewer words skip recall (short approvals pulled in unrelated memories) |
 | `smartMentions` | on | the @-mention context |
 | `harvestCorrections` | on | the correction harvester |

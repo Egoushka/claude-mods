@@ -41,6 +41,7 @@ type Settings = {
   minWords: number
   smartMentions: boolean
   harvest: boolean
+  showMemoryRow: boolean
   instructionsFile: string
   frictionFile: string
   retainServer: string
@@ -218,6 +219,7 @@ export const register: Register = (on, options) => {
     minWords: typeof options.minWords === 'number' && options.minWords >= 0 ? options.minWords : 6,
     smartMentions: options.smartMentions !== false,
     harvest: options.harvestCorrections !== false,
+    showMemoryRow: options.showMemoryRow === true,
     instructionsFile: text(options.instructionsFile, 'CLAUDE.md') || 'CLAUDE.md',
     frictionFile: text(options.frictionFile).trim(),
     retainServer: text(options.retainServer).trim(),
@@ -315,15 +317,16 @@ export const register: Register = (on, options) => {
     if (e.props.hasSurvey) return rest
     const recalled = await read($, memories)
     const cand = await read($, candidate)
-    if (!recalled && !cand) return rest
+    const showRecalled = s.showMemoryRow ? recalled : null
+    if (!showRecalled && !cand) return rest
 
     const { Box, Button, Text } = $.ui.resolve(e)
     return (
       <Box flexDirection="column">
-        {recalled && (
+        {showRecalled && (
           <Box>
             <Text dimColor>
-              {recalled.items.length} {recalled.items.length === 1 ? 'memory' : 'memories'}{' '}
+              {showRecalled.items.length} {showRecalled.items.length === 1 ? 'memory' : 'memories'}{' '}
             </Text>
             <Button key="show-memories" label="Show" onPress={() => $.ui.open({ id: MEMORY_PANE, title: 'Memories', focus: true })} />
           </Box>

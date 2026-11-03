@@ -9,9 +9,9 @@ Rules you'd otherwise write in CLAUDE.md and hope the model follows, enforced by
 | Second opinion | Before a force push, hard reset, `git clean -f`, branch delete, `rm -rf`, SQL drop/truncate/unbounded delete, EF migration, container wipe or repo delete, a forked model call reads the conversation and answers ALLOW or DENY. DENY stops the command and tells Claude to get explicit confirmation. Each approved command is asked once per session. | `tool.call`, `$.model.fork` |
 | Shell autocorrect | `cd dir && gh pr …` becomes `gh pr … -R owner/repo`; `gh … \| jq` is stopped with the `--json --jq` alternative; `timeout N` is dropped (macOS has none); `echo ===` gets quoted for zsh. Claude is told what changed. | `tool.call` |
 | Loop breaker | The fourth identical failing shell command is stopped, and so is the third Edit that flips a file back to a previous version. | `tool.call` |
-| Diff budget | After each edit, lines changed against `HEAD` show in the status line. Over budget, one toast asks for a smaller change. The budget is sized per task by Haiku unless you fix one. | `prompt.submit`, `tool.call` |
+| Diff budget | After each edit, lines changed against `HEAD` are tracked; the status line shows them only once over budget, with one toast asks for a smaller change. The budget is sized per task by Haiku unless you fix one. | `prompt.submit`, `tool.call` |
 
-The status line reads like `guard: 2 masked · 1 corrected · diff +120 −30 of 150`.
+The status line shows only what needs a look, like `guard: inside boundary · 1 stopped · diff +120 −30, over 100`. Masking and corrections happen silently.
 
 ## Settings
 
