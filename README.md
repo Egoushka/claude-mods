@@ -7,7 +7,7 @@
 
 # claude-mods
 
-> Eleven Claude Code mods you install one at a time: guardrails, a model router, a slop filter, memory recall, a live pane and more.
+> Sixteen Claude Code mods you install one at a time: guardrails, a model router, a slop filter, memory recall, a live pane and more.
 
 <!-- readme:status:start -->
 **Active**. I work on it this month.
@@ -17,12 +17,13 @@
 flowchart LR
   you[Your prompt] --> ps[prompt.submit<br/>recall · thrift · guardrails]
   ps --> model[Claude]
-  model --> tc[tool.call<br/>guardrails · cli-tools · forge · replay]
+  td[tool.describe<br/>tool-diet] --> model
+  model --> tc[tool.call<br/>guardrails · cli-tools · forge · replay · runstrip]
   tc --> tool[Shell, Edit, MCP tools]
   tool --> sa[session.append<br/>guardrails masks secrets · voice cleans replies]
   sa --> model
-  model --> tcomp[turn.complete<br/>rival · ledger · cockpit · switchboard]
-  tcomp --> ui[ui.render<br/>band above the prompt · panes]
+  model --> tcomp[turn.complete<br/>rival · ledger · cockpit · switchboard · handoff-autopilot]
+  tcomp --> ui[ui.render<br/>band above the prompt: redline · runstrip · switchboard · panes]
 ```
 
 ## Why
@@ -91,8 +92,8 @@ never replaces it, so any set of mods can run together. `scripts/check.sh` type-
 
 | | Value | Source |
 |---|---|---|
-| Mods | 10 | `.claude-plugin/marketplace.json` |
-| Test cases | 151 in 11 files | `grep -c` over `mods/*/tests/*.test.ts`, 2026-10-20 |
+| Mods | 16 | `.claude-plugin/marketplace.json` |
+| Test cases | 236 in 17 files | `grep -c` over `mods/*/tests/*.test.ts`, 2026-11-06 |
 
 ## Docs
 
