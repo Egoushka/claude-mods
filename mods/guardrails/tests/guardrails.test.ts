@@ -70,6 +70,11 @@ describe('rules', () => {
     expect(touchesBoundary(paths, 'Bash', { command: 'cd personal && ls' }, base)).toBe(false)
     expect(touchesBoundary(paths, 'Bash', { command: 'echo work' }, base)).toBe(false)
     expect(touchesBoundary(paths, 'Read', { file_path: 'work/a' }, '')).toBe(false)
+    expect(touchesBoundary(paths, 'Bash', { command: 'cd -P work/app && ls' }, base)).toBe(true)
+    expect(touchesBoundary(paths, 'Bash', { command: 'cd ..; ls work' }, '/Users/me/Projects/personal')).toBe(true)
+    expect(touchesBoundary(paths, 'Bash', { command: 'cd && cd Projects/work' }, '/tmp')).toBe(true)
+    expect(touchesBoundary(paths, 'Bash', { command: 'cd - && ls' }, base)).toBe(true)
+    expect(touchesBoundary(paths, 'Bash', { command: 'cd personal && ls src' }, base)).toBe(false)
   })
 
   test('the tool list drops what the boundary forbids', () => {

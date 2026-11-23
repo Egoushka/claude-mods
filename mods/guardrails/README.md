@@ -33,4 +33,4 @@ The second opinion is one forked request per distinct irreversible command; it r
 
 ## Limits
 
-A session that starts elsewhere and never names a path under the boundary is outside it; `~` and `$HOME` are matched as written, not expanded. The list is refreshed by the engine, so a session that enters the boundary mid-turn can still see a personal tool until the call guard refuses it. Regex rules are best effort: a command built to dodge them will. This is a seatbelt against mistakes, not a sandbox.
+A session that starts elsewhere and never names a path under the boundary is outside it; `~`, `$HOME` and other variables are matched as written, not expanded; quoting tricks (`wo""rk`), symlinks and `cd -` are beyond a static check (`cd -` and a bare `cd` fence the session to be safe). The list is refreshed by the engine, so a session that enters the boundary mid-turn can still see a personal tool until the call guard refuses it. Regex rules are best effort: a command built to dodge them will. This is a seatbelt against mistakes, not a sandbox.

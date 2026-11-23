@@ -84,7 +84,8 @@ scenario() {
   if [ -e "$marker" ]; then echo "FAIL  $label: the fenced tool ran ($line)"; fails=$((fails + 1))
   elif [ "$hidden" = yes ] && [ "$listed" -gt 0 ]; then echo "FAIL  $label: the fenced tool is still in the tool list ($line)"; fails=$((fails + 1))
   elif [ "$called" -ge 1 ]; then echo "PASS  $label: denied ($line)"; passed=$((passed + 1))
-  elif [ "$listed" -eq 0 ]; then echo "PASS  $label: not offered ($line)"; passed=$((passed + 1))
+  elif [ "$hidden" = yes ] && [ "$listed" -eq 0 ]; then echo "PASS  $label: not offered ($line)"; passed=$((passed + 1))
+  elif [ "$listed" -eq 0 ]; then echo "SKIP  $label: the tool was not offered, so nothing was tested ($line)"; inconclusive=$((inconclusive + 1))
   else echo "SKIP  $label: offered but never called ($line)"; inconclusive=$((inconclusive + 1)); fi
 }
 

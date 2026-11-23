@@ -56,18 +56,34 @@ export function touchesBoundary(paths: RegExp | undefined, tool: string, input: 
   return strings.some(({ key, text }) => {
     if (hit(text)) return true
     if (PATH_FIELDS.has(key) && hit(resolveAgainst(base, text))) return true
-    let cwd = base
-    let previous = ''
-    for (const token of text.split(TOKEN_BREAKS)) {
-      if (token === '') continue
-      if (hit(token)) return true
-      const isTarget = previous === 'cd' || previous === 'pushd' || previous === '-C' || previous === '--cwd'
-      if (isTarget || token.includes('/')) {
-        const full = resolveAgainst(cwd, token)
-        if (hit(full) || hit(`${full}/`)) return true
-        if (previous === 'cd' || previous === 'pushd') cwd = full
+    // Shell-style text, one command at a time. After a `cd`, every plain word is a possible path.
+    let cwd: string | undefined = base
+    let hasMoved = false
+    for (const segment of text.split(/[;&|\n]+/)) {
+      const words = segment.split(TOKEN_BREAKS).filter(w => w !== '')
+      const [first = ''] = words
+      const isCd = first === 'cd' || first === 'pushd'
+      for (let i = 0; i < words.length; i += 1) {
+        const word = words[i] ?? ''
+        if (hit(word)) return true
+        const previous = words[i - 1] ?? ''
+        const isTarget = previous === '-C' || previous === '--cwd'
+        const isPlain = !word.startsWith('-') && !(isCd && i === 0)
+        if (cwd === undefined) {
+          if (isPlain && (i > 0 || !isCd)) return true
+          continue
+        }
+        if (isPlain && (isTarget || word.includes('/') || hasMoved || (isCd && i > 0))) {
+          const full = resolveAgainst(cwd, word)
+          if (hit(full) || hit(`${full}/`)) return true
+        }
       }
-      previous = token
+      if (isCd) {
+        const target = words.slice(1).find(w => !w.startsWith('-') || w === '-')
+        if (target === undefined || target === '-') cwd = undefined // home or the previous folder: unknown, so fail closed
+        else if (cwd !== undefined) cwd = resolveAgainst(cwd, target)
+        hasMoved = true
+      }
     }
     return false
   })
