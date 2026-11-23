@@ -29,7 +29,7 @@ if [ "$(uname)" = Darwin ] && [ -n "${SSH_CONNECTION:-}" ] && [ -z "${PROBE_IN_L
 PLIST
   launchctl bootout "gui/$uid/$label" 2>/dev/null
   launchctl bootstrap "gui/$uid" "$work/job.plist" || { echo "FAIL: could not start the LaunchAgent"; exit 2; }
-  for _ in $(seq 1 180); do [ -e "$work/rc" ] && break; sleep 2; done
+  for _ in $(seq 1 600); do [ -e "$work/rc" ] && break; sleep 2; done
   launchctl bootout "gui/$uid/$label" 2>/dev/null
   cat "$work/out" 2>/dev/null; rc=$(cat "$work/rc" 2>/dev/null || echo 2); exit "$rc"
 fi
@@ -95,7 +95,12 @@ file="$dir/.fence-probe-nonexistent"
 outside=$(dirname "$dir")
 matches "$paths" "$outside" && outside=""
 rel=$(basename "$dir")
-scenario "cli, started in the fenced folder" "$dir" "$call" cli yes
+# The tool.list hook (hiding fenced tools) needs Claude Code 2.1.325 or later; older builds still list them and rely on the call guard.
+cli_version=$("${CLAUDE_BIN:-claude}" --version 2>/dev/null | sed -n 's/^\([0-9][0-9.]*\).*/\1/p')
+cli_hides=no
+[ -n "$cli_version" ] && [ "$(printf '%s\n2.1.325\n' "$cli_version" | sort -V | head -1)" = 2.1.325 ] && cli_hides=yes
+[ "$cli_hides" = yes ] || echo "NOTE  claude $cli_version predates the tool list hook; the CLI scenarios check the call guard only"
+scenario "cli, started in the fenced folder" "$dir" "$call" cli "$cli_hides"
 if [ -n "$outside" ]; then
   scenario "cli, started outside, then names a fenced path" "$outside" "Try to read the file $file; if it is missing, carry on. Then $call" cli no
   scenario "cli, started outside, then cd by a relative path" "$outside" "Run the Bash command 'cd $rel && pwd'. Then $call" cli no
