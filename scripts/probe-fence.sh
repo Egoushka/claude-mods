@@ -16,7 +16,7 @@ if [ "$(uname)" = Darwin ] && [ -n "${SSH_CONNECTION:-}" ] && [ -z "${PROBE_IN_L
   trap 'launchctl bootout "gui/$uid/$label" 2>/dev/null; rm -rf "$work"' EXIT
   xml() { local v=${1//&/&amp;}; v=${v//</&lt;}; printf '%s' "${v//>/&gt;}"; }
   args=""; for a in "$@"; do args+="<string>$(xml "$a")</string>"; done
-  envs=""; for v in CLAUDE_BIN DESKTOP_CLAUDE_BIN CLAUDE_CODE_ENTRYPOINT CLAUDE_SETTINGS; do [ -n "${!v:-}" ] && envs+="<key>$v</key><string>$(xml "${!v}")</string>"; done
+  envs=""; for v in CLAUDE_BIN DESKTOP_CLAUDE_BIN CLAUDE_CODE_ENTRYPOINT CLAUDE_SETTINGS PROBE_VERBOSE; do [ -n "${!v:-}" ] && envs+="<key>$v</key><string>$(xml "${!v}")</string>"; done
   here_xml=$(xml "$here"); work_xml=$(xml "$work")
   cat > "$work/job.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -67,11 +67,15 @@ fails=0; passed=0; inconclusive=0
 # Passes when the fenced server never ran and the call was denied or the tool was never offered. With
 # hidden=yes the tool must also be missing from the session's tool list.
 scenario() {
-  local label=$1 start=$2 prompt=$3 transport=$4 hidden=$5 line called listed
+  local label=$1 start=$2 prompt=$3 transport=$4 hidden=$5 line called listed searched=0 found=0
   rm -f "$marker"
   if [ "$transport" = desktop ]; then
-    line=$(cd "$start" && CLAUDE_CODE_ENTRYPOINT=claude-desktop python3 "$here/fence-probe-desktop.py" "$desktop_bin" "$server" "$marker" "$prompt" 2>&1 | tail -1)
+    local dout
+    dout=$(cd "$start" && CLAUDE_CODE_ENTRYPOINT=claude-desktop python3 "$here/fence-probe-desktop.py" "$desktop_bin" "$server" "$marker" "$prompt" 2>&1)
+    line=$(tail -1 <<<"$dout")
+    [ -z "${PROBE_VERBOSE:-}" ] || sed 's/^/      | /' <<<"$dout"
     called=$(sed -n 's/.*called=\([0-9]*\).*/\1/p' <<<"$line"); listed=$(sed -n 's/.*listed=\([0-9]*\).*/\1/p' <<<"$line")
+    searched=$(sed -n 's/.*searched=\([0-9]*\).*/\1/p' <<<"$line"); found=$(sed -n 's/.*found=\([0-9]*\).*/\1/p' <<<"$line")
   else
     local out
     out=$(cd "$start" && "${CLAUDE_BIN:-claude}" -p "$prompt" --mcp-config "$cfg" --strict-mcp-config \
@@ -79,12 +83,14 @@ scenario() {
     called=$(printf '%s\n' "$out" | jq -rs --arg t "mcp__${server}__ping" '[.[] | select(.type=="assistant") | .message.content[]? | select(.type=="tool_use" and .name==$t)] | length' 2>/dev/null || echo 0)
     listed=$(printf '%s\n' "$out" | jq -rs --arg t "mcp__${server}__ping" '[.[] | select(.subtype=="init") | .tools[]? | select(.==$t)] | length' 2>/dev/null || echo 0)
     line="listed=$listed called=$called"
+    [ -z "${PROBE_VERBOSE:-}" ] || printf '%s\n' "$out" | jq -rs '[.[] | select(.type=="user") | .message.content[]? | select(.type=="tool_result") | (.content|tostring)[0:140]] | "      | results: " + (. | tostring)' 2>/dev/null
   fi
   called=${called:-0}; listed=${listed:-0}
   if [ -e "$marker" ]; then echo "FAIL  $label: the fenced tool ran ($line)"; fails=$((fails + 1))
   elif [ "$hidden" = yes ] && [ "$listed" -gt 0 ]; then echo "FAIL  $label: the fenced tool is still in the tool list ($line)"; fails=$((fails + 1))
   elif [ "$called" -ge 1 ]; then echo "PASS  $label: denied ($line)"; passed=$((passed + 1))
   elif [ "$hidden" = yes ] && [ "$listed" -eq 0 ]; then echo "PASS  $label: not offered ($line)"; passed=$((passed + 1))
+  elif [ "$transport" = desktop ] && [ "${searched:-0}" -ge 1 ] && [ "${found:-0}" -eq 0 ]; then echo "PASS  $label: hidden once the session was inside; the model searched for the tool and was not given it ($line)"; passed=$((passed + 1))
   elif [ "$listed" -eq 0 ]; then echo "SKIP  $label: the tool was not offered, so nothing was tested ($line)"; inconclusive=$((inconclusive + 1))
   else echo "SKIP  $label: offered but never called ($line)"; inconclusive=$((inconclusive + 1)); fi
 }
