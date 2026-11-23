@@ -16,21 +16,85 @@ export function compile(source: unknown): RegExp | undefined {
   }
 }
 
+// Collapses `.` and `..` and repeated slashes; an absolute path stays absolute.
+export function normalizePath(path: string): string {
+  const out: string[] = []
+  for (const part of path.split('/')) {
+    if (part === '' || part === '.') continue
+    if (part === '..') out.pop()
+    else out.push(part)
+  }
+  return `${path.startsWith('/') ? '/' : ''}${out.join('/')}`
+}
+
+// `~` and `$HOME` cannot be expanded here, so they are tested as written; a relative path is joined to `base`.
+function resolveAgainst(base: string, path: string): string {
+  if (path.startsWith('/') || path.startsWith('~') || path.startsWith('$') || base === '') return path
+  return normalizePath(`${base}/${path}`)
+}
+
+const PATH_FIELDS = new Set(['file_path', 'path', 'notebook_path', 'cwd', 'directory', 'dir'])
+const TOKEN_BREAKS = /[\s"'`;&|()<>=,]+/
+
 // A session can start outside the boundary and later work inside it (a folder picked after launch,
 // a resumed session). Any built-in tool whose input names a path under the boundary marks the session
-// as inside from then on: any string in the input counts, so a mention latches too (it fails closed). Relative
-// paths cannot be resolved without the live folder, so `cd work` alone does not. MCP tools are skipped:
-// their arguments are text, not places.
-export function touchesBoundary(paths: RegExp | undefined, tool: string, input: Record<string, unknown>): boolean {
+// as inside from then on: any string in the input counts, so a mention latches too (it fails closed).
+// Relative paths are resolved against `base` (the session folder): path fields, and in a shell command
+// the targets of `cd`, `pushd`, `-C` and any `./x`, `../x` or `dir/x` word, following each `cd` in order.
+// MCP tools are skipped: their arguments are text, not places.
+export function touchesBoundary(paths: RegExp | undefined, tool: string, input: Record<string, unknown>, base = ''): boolean {
   if (!paths || tool.startsWith('mcp__')) return false
-  const seen: string[] = []
-  const walk = (value: unknown, depth: number) => {
-    if (typeof value === 'string') seen.push(value)
-    else if (depth < 3 && value && typeof value === 'object') for (const v of Object.values(value)) walk(v, depth + 1)
+  const hit = (text: string) => paths.test(text)
+  const strings: { key: string; text: string }[] = []
+  const walk = (key: string, value: unknown, depth: number) => {
+    if (typeof value === 'string') strings.push({ key, text: value })
+    else if (depth < 3 && value && typeof value === 'object') for (const [k, v] of Object.entries(value)) walk(k, v, depth + 1)
   }
   const { tool: _tool, tool_use_id: _id, ...rest } = input
-  walk(rest, 0)
-  return seen.some(text => paths.test(text) || text.split(/[\s"'`;&|()<>=,]+/).some(token => token !== '' && paths.test(token)))
+  for (const [k, v] of Object.entries(rest)) walk(k, v, 0)
+
+  return strings.some(({ key, text }) => {
+    if (hit(text)) return true
+    if (PATH_FIELDS.has(key) && hit(resolveAgainst(base, text))) return true
+    // Shell-style text, one command at a time. After a `cd`, every plain word is a possible path.
+    let cwd: string | undefined = base
+    let hasMoved = false
+    for (const segment of text.split(/[;&|\n]+/)) {
+      const words = segment.split(TOKEN_BREAKS).filter(w => w !== '')
+      const [first = ''] = words
+      const isCd = first === 'cd' || first === 'pushd'
+      for (let i = 0; i < words.length; i += 1) {
+        const word = words[i] ?? ''
+        if (hit(word)) return true
+        const previous = words[i - 1] ?? ''
+        const isTarget = previous === '-C' || previous === '--cwd'
+        const isPlain = !word.startsWith('-') && !(isCd && i === 0)
+        if (cwd === undefined) {
+          if (isPlain && (i > 0 || !isCd)) return true
+          continue
+        }
+        if (isPlain && (isTarget || word.includes('/') || hasMoved || (isCd && i > 0))) {
+          const full = resolveAgainst(cwd, word)
+          if (hit(full) || hit(`${full}/`)) return true
+        }
+      }
+      if (isCd) {
+        const target = words.slice(1).find(w => !w.startsWith('-') || w === '-')
+        if (target === undefined || target === '-') cwd = undefined // home or the previous folder: unknown, so fail closed
+        else if (cwd !== undefined) cwd = resolveAgainst(cwd, target)
+        hasMoved = true
+      }
+    }
+    return false
+  })
+}
+
+// The tools a session is offered: inside, the fenced ones are hidden; outside, the inside-only ones; with no
+// known folder, both.
+export function visibleTools<T extends { name: string }>(b: Boundary, where: 'inside' | 'outside' | 'unknown', tools: T[]): T[] {
+  const hide = (name: string) =>
+    (where !== 'outside' && b.fencedTools?.test(name)) || (where !== 'inside' && b.insideOnlyTools?.test(name))
+  return tools.filter(t => !hide(t.name))
 }
 
 // What a call would cross: a fenced session reaching out, or an outside session writing in.

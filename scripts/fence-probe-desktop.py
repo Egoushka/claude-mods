@@ -12,7 +12,7 @@ p = subprocess.Popen([claude, "-p", "--input-format", "stream-json", "--output-f
 def send(o): p.stdin.write(json.dumps(o) + "\n"); p.stdin.flush()
 send({"type": "control_request", "request_id": "init", "request": {"subtype": "initialize", "sdkMcpServers": [server]}})
 send({"type": "user", "message": {"role": "user", "content": prompt}})
-called = denied = 0
+called = denied = listed = 0
 threading.Timer(150, p.kill).start()
 for line in p.stdout:
     try: j = json.loads(line)
@@ -27,6 +27,8 @@ for line in p.stdout:
             open(marker, "a").write("ran\n"); resp = {"jsonrpc": "2.0", "id": rid, "result": {"content": [{"type": "text", "text": "pong"}]}}
         else: resp = {"jsonrpc": "2.0", "id": rid, "result": {}}
         send({"type": "control_response", "response": {"subtype": "success", "request_id": j["request_id"], "response": {"mcp_response": resp}}})
+    elif t == "system" and j.get("subtype") == "init":
+        listed = sum(1 for n in j.get("tools", []) if n == f"mcp__{server}__ping")
     elif t == "assistant":
         for b in j["message"].get("content", []):
             if b.get("type") == "tool_use" and b.get("name") == f"mcp__{server}__ping": called += 1
@@ -36,4 +38,4 @@ for line in p.stdout:
             if b.get("type") == "tool_result" and "guardrails" in json.dumps(b.get("content")): denied += 1
     elif t == "result": break
 p.stdin.close(); p.terminate()
-print(f"called={called} denied={denied} ran={os.path.exists(marker)}")
+print(f"listed={listed} called={called} denied={denied} ran={os.path.exists(marker)}")
