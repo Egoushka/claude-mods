@@ -4,7 +4,7 @@ Rules you'd otherwise write in CLAUDE.md and hope the model follows, enforced by
 
 | Feature | What it does | Hooks |
 |---|---|---|
-| Boundary | A session whose folder matches `boundaryPaths` cannot call `fencedTools` or reach `fencedHosts` (WebFetch URLs, shell commands). Sessions outside it cannot call `insideOnlyTools`. Use it to keep employer code away from personal services, or the reverse. | `session.start`, `tool.call` |
+| Boundary | A session whose folder matches `boundaryPaths` cannot call `fencedTools` or reach `fencedHosts` (WebFetch URLs, shell commands). Sessions outside it cannot call `insideOnlyTools`. Use it to keep employer code away from personal services, or the reverse. The folder is judged on every call, not only at session start: a session that began elsewhere is fenced from the first built-in tool call that names a path under `boundaryPaths` (Read, Edit, Bash, …), and a fence with no known folder fails closed. | `session.start`, `tool.call` |
 | Secret masking | Keys, tokens, private keys, JWTs, connection-string passwords and `*_TOKEN=`-style assignments in tool output become `[masked:<kind>]` before the model reads them. Placeholders like `${TOKEN}` are left alone. | `session.append` (door `tool-result`) |
 | Second opinion | Before a force push, hard reset, `git clean -f`, branch delete, `rm -rf`, SQL drop/truncate/unbounded delete, EF migration, container wipe or repo delete, a forked model call reads the conversation and answers ALLOW or DENY. DENY stops the command and tells Claude to get explicit confirmation. Each approved command is asked once per session. | `tool.call`, `$.model.fork` |
 | Shell autocorrect | `cd dir && gh pr …` becomes `gh pr … -R owner/repo`; `gh … \| jq` is stopped with the `--json --jq` alternative; `timeout N` is dropped (macOS has none); `echo ===` gets quoted for zsh. Claude is told what changed. | `tool.call` |
@@ -17,7 +17,7 @@ The status line shows only what needs a look, like `guard: inside boundary · 1 
 
 | Field | Default | Meaning |
 |---|---|---|
-| `boundaryPaths` | empty (off) | Regex over the session folder that marks a fenced session, e.g. `/work(/\|$)` |
+| `boundaryPaths` | empty (off) | Regex over the session folder, and over paths named by built-in tool calls, that marks a fenced session, e.g. `/work(/\|$)` |
 | `fencedTools` | empty | Regex over tool names blocked inside, e.g. `^mcp__(personal-notes\|home)__` |
 | `fencedHosts` | empty | Regex over URLs/commands blocked inside, e.g. `my-home\.example` |
 | `insideOnlyTools` | empty | Regex over tools callable only inside |
@@ -33,4 +33,4 @@ The second opinion is one forked request per distinct irreversible command; it r
 
 ## Limits
 
-Regex rules are best effort: a command built to dodge them will. This is a seatbelt against mistakes, not a sandbox.
+The boundary stops tool calls; it does not hide the tools from the model's list. A session that never names a path under the boundary and starts elsewhere is outside it. Regex rules are best effort: a command built to dodge them will. This is a seatbelt against mistakes, not a sandbox.

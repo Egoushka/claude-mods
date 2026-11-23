@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { boundaryDenial, compile, irreversibleKind, maskSecrets, repoFromRemote, shellCorrection } from '../hooks/rules'
+import { boundaryDenial, compile, touchesBoundary, irreversibleKind, maskSecrets, repoFromRemote, shellCorrection } from '../hooks/rules'
 
 describe('rules', () => {
   test('masks known secret shapes and keeps placeholders', () => {
@@ -45,6 +45,15 @@ describe('rules', () => {
     expect(boundaryDenial(b, false, 'mcp__personal__notes', {})).toBeUndefined()
   })
 
+  test('a built-in tool naming a path under the boundary marks the session', () => {
+    const paths = compile('/Projects/work(/|$)')
+    expect(touchesBoundary(paths, 'Read', { file_path: '/Users/me/Projects/work/app/a.cs' })).toBe(true)
+    expect(touchesBoundary(paths, 'Bash', { command: 'ls "/Users/me/Projects/work" && git status' })).toBe(true)
+    expect(touchesBoundary(paths, 'Glob', { path: '/Users/me/Projects/personal', pattern: '*.md' })).toBe(false)
+    expect(touchesBoundary(paths, 'mcp__personal__notes', { query: '/Users/me/Projects/work/app' })).toBe(false)
+    expect(touchesBoundary(undefined, 'Read', { file_path: '/Users/me/Projects/work/a' })).toBe(false)
+  })
+
   test('repo from remote', () => {
     expect(repoFromRemote('git@github.com:acme/app.git\n')).toBe('acme/app')
     expect(repoFromRemote('https://github.com/acme/app')).toBe('acme/app')
@@ -64,6 +73,38 @@ describe('hooks', () => {
     await $.session.start({ cwd: '/home/me/work/app', surface: null, isInteractive: true })
     const r = await $.tool.call({ tool: 'mcp__personal__notes' } as never)
     expect(JSON.stringify(r)).toContain('outside this session')
+  })
+
+  const fence = { boundaryPaths: '/Projects/work(/|$)', fencedTools: '^mcp__personal__' }
+
+  test('a session that started outside is fenced once it touches a path inside', { options: fence }, async ($, on) => {
+    engine(on)
+    on('tool.call', () => ({ result: 'ran' }) as never)
+    await $.session.start({ cwd: '/Users/me/Projects', surface: null, isInteractive: true })
+    expect(JSON.stringify(await $.tool.call({ tool: 'mcp__personal__notes' } as never))).toContain('ran')
+    await $.tool.call({ tool: 'Read', file_path: '/Users/me/Projects/work/app/a.cs' } as never)
+    expect(JSON.stringify(await $.tool.call({ tool: 'mcp__personal__notes' } as never))).toContain('outside this session')
+  })
+
+  test('a new session start forgets that mark', { options: fence }, async ($, on) => {
+    engine(on)
+    on('tool.call', () => ({ result: 'ran' }) as never)
+    await $.session.start({ cwd: '/Users/me/Projects', surface: null, isInteractive: true })
+    await $.tool.call({ tool: 'Read', file_path: '/Users/me/Projects/work/app/a.cs' } as never)
+    await $.session.start({ cwd: '/Users/me/Projects/personal', surface: null, isInteractive: true })
+    expect(JSON.stringify(await $.tool.call({ tool: 'mcp__personal__notes' } as never))).toContain('ran')
+  })
+
+  test('a fenced tool is stopped when the session folder is unknown', { options: fence }, async ($, on) => {
+    engine(on)
+    on('tool.call', () => ({ result: 'ran' }) as never)
+    expect(JSON.stringify(await $.tool.call({ tool: 'mcp__personal__notes' } as never))).toContain('outside this session')
+  })
+
+  test('without a boundary nothing is fenced', async ($, on) => {
+    engine(on)
+    on('tool.call', () => ({ result: 'ran' }) as never)
+    expect(JSON.stringify(await $.tool.call({ tool: 'mcp__personal__notes' } as never))).toContain('ran')
   })
 
   test('the loop breaker stops the fourth identical failure', async ($, on) => {

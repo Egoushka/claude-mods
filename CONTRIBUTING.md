@@ -60,3 +60,11 @@ TYPES=/path/to/claude-code.d.ts ./scripts/check.sh
 ```
 
 Type-checks, validates and tests every mod. A loaded mod has the types at `mods/<name>/.claude-plugin/types/claude-code/index.d.ts`.
+
+## Probing a fence live
+
+`scripts/probe-fence.sh` starts real sessions in the folder `boundaryPaths` fences, with a stand-in MCP server named like a
+fenced one (`scripts/fence-probe-server.py`), and passes only if the call was denied and the server never ran. It runs the CLI,
+and the Claude Desktop build with the server served by the host (`scripts/fence-probe-desktop.py`), each started inside the
+folder and started outside then reading a file inside. It reads the fence from `~/.claude/settings.json`, costs a few Haiku
+turns, and over `ssh` on macOS runs itself through a LaunchAgent because the Keychain is locked there.

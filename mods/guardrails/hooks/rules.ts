@@ -16,6 +16,21 @@ export function compile(source: unknown): RegExp | undefined {
   }
 }
 
+// A session can start outside the boundary and later work inside it (a folder picked after launch,
+// a resumed session). Any built-in tool whose input names a path under the boundary marks the session
+// as inside from then on. MCP tools are skipped: their arguments are text, not places.
+export function touchesBoundary(paths: RegExp | undefined, tool: string, input: Record<string, unknown>): boolean {
+  if (!paths || tool.startsWith('mcp__')) return false
+  const seen: string[] = []
+  const walk = (value: unknown, depth: number) => {
+    if (typeof value === 'string') seen.push(value)
+    else if (depth < 3 && value && typeof value === 'object') for (const v of Object.values(value)) walk(v, depth + 1)
+  }
+  const { tool: _tool, tool_use_id: _id, ...rest } = input
+  walk(rest, 0)
+  return seen.some(text => text.split(/[\s"'`;&|()<>=,]+/).some(token => token !== '' && paths.test(token)))
+}
+
 // What a call would cross: a fenced session reaching out, or an outside session writing in.
 export function boundaryDenial(b: Boundary, isInside: boolean, tool: string, input: Record<string, unknown>): string | undefined {
   if (isInside) {

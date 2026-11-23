@@ -4,6 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { GuardStats } from '../types'
 import {
   boundaryDenial,
+  touchesBoundary,
   budgetFor,
   compile,
   irreversibleKind,
@@ -74,6 +75,7 @@ export const register: Register = (on, options) => {
   // Per-session bookkeeping; a reload starts it over, which is fine for counters this short-lived.
   let cwd = ''
   let isInside = false
+  let isEntered = false
   let isOverBudgetToastShown = false
   const failures = new Map<string, number>()
   const edits = new Map<string, { old: string; new: string; flips: number }>()
@@ -83,6 +85,7 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     cwd = e.cwd
+    isEntered = false
     isInside = boundary.paths?.test(cwd) ?? false
     await update($, stats, () => ({ ...initial, isInside, budget: fixedBudget }))
     await refreshStatus($)
@@ -134,7 +137,18 @@ export const register: Register = (on, options) => {
   on('tool.call', async ($, e, next) => {
     const tool = String(e.tool)
 
-    const crossing = boundaryDenial(boundary, isInside, tool, e as unknown as Record<string, unknown>)
+    // Decided on every call, not once at session.start: a session that started elsewhere, was re-rooted,
+    // or has touched a path under the boundary is inside. Without a folder at all, a fence fails closed.
+    const input = e as unknown as Record<string, unknown>
+    if (boundary.paths && !isEntered && touchesBoundary(boundary.paths, tool, input)) isEntered = true
+    const root = boundary.paths && !isInside && !isEntered ? await $.session.root().catch(() => '') : ''
+    const isNowInside = isInside || isEntered || (boundary.paths ? !(cwd || root) || boundary.paths.test(root) : false)
+    if (isNowInside && !isInside) {
+      isInside = true
+      await bump($, () => ({ isInside }))
+      await refreshStatus($)
+    }
+    const crossing = boundaryDenial(boundary, isNowInside, tool, input)
     if (crossing) return deny($, crossing)
 
     let rewritten: string | undefined
