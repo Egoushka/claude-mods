@@ -5,6 +5,7 @@ import type { GuardStats } from '../types'
 import {
   boundaryDenial,
   touchesBoundary,
+  visibleTools,
   budgetFor,
   compile,
   irreversibleKind,
@@ -134,14 +135,25 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // The model's tool list drops what the boundary forbids, so a fenced session is not offered personal tools it
+  // would only be refused. Same rule as the call guard: inside, hide fencedTools; outside, hide insideOnlyTools.
+  on('tool.list', async ($, e, next) => {
+    const r = (await next(e)) as { value?: { name: string }[] }
+    if (!boundary.paths || !Array.isArray(r?.value)) return r
+    const root = !isInside && !isEntered ? await $.session.root().catch(() => '') : ''
+    const isUnknown = !isInside && !isEntered && !(cwd || root)
+    const isNowInside = isInside || isEntered || boundary.paths.test(root)
+    return { ...r, value: visibleTools(boundary, isUnknown ? 'unknown' : isNowInside ? 'inside' : 'outside', r.value) }
+  })
+
   on('tool.call', async ($, e, next) => {
     const tool = String(e.tool)
 
     // Decided on every call, not once at session.start: a session that started elsewhere, was re-rooted,
     // or has touched a path under the boundary is inside. Without a folder at all, a fence fails closed.
     const input = e as unknown as Record<string, unknown>
-    if (boundary.paths && !isEntered && touchesBoundary(boundary.paths, tool, input)) isEntered = true
     const root = boundary.paths && !isInside && !isEntered ? await $.session.root().catch(() => '') : ''
+    if (boundary.paths && !isInside && !isEntered && touchesBoundary(boundary.paths, tool, input, cwd || root)) isEntered = true
     const isFolderUnknown = !!boundary.paths && !isInside && !isEntered && !(cwd || root)
     const isNowInside = isInside || isEntered || isFolderUnknown || (boundary.paths?.test(root) ?? false)
     if (isNowInside && !isInside && !isFolderUnknown) {

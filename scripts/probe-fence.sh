@@ -62,46 +62,56 @@ cfg=$tmp/mcp.json
 jq -n --arg s "$server" --arg py "$here/fence-probe-server.py" --arg m "$marker" \
   '{mcpServers: {($s): {command: "python3", args: [$py, $m]}}}' > "$cfg"
 
-fails=0; ran=0; inconclusive=0
-# scenario <label> <start-folder> <prompt> <transport: cli|desktop> [file under the fenced folder to read first]
+fails=0; passed=0; inconclusive=0
+# scenario <label> <start-folder> <prompt> <transport: cli|desktop> <hidden: yes|no>
+# Passes when the fenced server never ran and the call was denied or the tool was never offered. With
+# hidden=yes the tool must also be missing from the session's tool list.
 scenario() {
-  local label=$1 start=$2 prompt=$3 transport=$4 line called
+  local label=$1 start=$2 prompt=$3 transport=$4 hidden=$5 line called listed
   rm -f "$marker"
   if [ "$transport" = desktop ]; then
     line=$(cd "$start" && CLAUDE_CODE_ENTRYPOINT=claude-desktop python3 "$here/fence-probe-desktop.py" "$desktop_bin" "$server" "$marker" "$prompt" 2>&1 | tail -1)
-    called=$(sed -n 's/.*called=\([0-9]*\).*/\1/p' <<<"$line")
+    called=$(sed -n 's/.*called=\([0-9]*\).*/\1/p' <<<"$line"); listed=$(sed -n 's/.*listed=\([0-9]*\).*/\1/p' <<<"$line")
   else
     local out
     out=$(cd "$start" && "${CLAUDE_BIN:-claude}" -p "$prompt" --mcp-config "$cfg" --strict-mcp-config \
       --permission-mode bypassPermissions --model haiku --max-turns 5 --output-format stream-json --verbose 2>&1)
     called=$(printf '%s\n' "$out" | jq -rs --arg t "mcp__${server}__ping" '[.[] | select(.type=="assistant") | .message.content[]? | select(.type=="tool_use" and .name==$t)] | length' 2>/dev/null || echo 0)
-    line="called=$called"
+    listed=$(printf '%s\n' "$out" | jq -rs --arg t "mcp__${server}__ping" '[.[] | select(.subtype=="init") | .tools[]? | select(.==$t)] | length' 2>/dev/null || echo 0)
+    line="listed=$listed called=$called"
   fi
+  called=${called:-0}; listed=${listed:-0}
   if [ -e "$marker" ]; then echo "FAIL  $label: the fenced tool ran ($line)"; fails=$((fails + 1))
-  elif [ "${called:-0}" -lt 1 ]; then echo "SKIP  $label: the model never called the tool"; inconclusive=$((inconclusive + 1))
-  else echo "PASS  $label: denied"; ran=$((ran + 1)); fi
+  elif [ "$hidden" = yes ] && [ "$listed" -gt 0 ]; then echo "FAIL  $label: the fenced tool is still in the tool list ($line)"; fails=$((fails + 1))
+  elif [ "$called" -ge 1 ]; then echo "PASS  $label: denied ($line)"; passed=$((passed + 1))
+  elif [ "$listed" -eq 0 ]; then echo "PASS  $label: not offered ($line)"; passed=$((passed + 1))
+  else echo "SKIP  $label: offered but never called ($line)"; inconclusive=$((inconclusive + 1)); fi
 }
 
 call="Call the tool mcp__${server}__ping once with no arguments, then say what happened in one line."
-# A path that need not exist: naming it is enough, and no file of the fenced folder is sent to the model.
+# Paths that need not exist: naming them is enough, and nothing of the fenced folder is sent to the model.
 file="$dir/.fence-probe-nonexistent"
 outside=$(dirname "$dir")
 matches "$paths" "$outside" && outside=""
-scenario "cli, session started in the fenced folder" "$dir" "$call" cli
-if [ -n "$outside" ] && [ -n "$file" ]; then
-  scenario "cli, session started outside, then reads a fenced file" "$outside" "Try to read the file $file; if it is missing, carry on. Then $call" cli
+rel=$(basename "$dir")
+scenario "cli, started in the fenced folder" "$dir" "$call" cli yes
+if [ -n "$outside" ]; then
+  scenario "cli, started outside, then names a fenced path" "$outside" "Try to read the file $file; if it is missing, carry on. Then $call" cli no
+  scenario "cli, started outside, then cd by a relative path" "$outside" "Run the Bash command 'cd $rel && pwd'. Then $call" cli no
 fi
 desktop_bin=${DESKTOP_CLAUDE_BIN:-$(ls -td "$HOME"/Library/Application\ Support/Claude/claude-code/*/*/claude.app/Contents/MacOS/claude 2>/dev/null | head -1)}
 if [ -n "$desktop_bin" ] && [ -x "$desktop_bin" ]; then
-  scenario "desktop build, host-served MCP, started in the fenced folder" "$dir" "$call" desktop
-  if [ -n "$outside" ] && [ -n "$file" ]; then
-    scenario "desktop build, started outside, then reads a fenced file" "$outside" "Try to read the file $file; if it is missing, carry on. Then $call" desktop
+  scenario "desktop build, started in the fenced folder" "$dir" "$call" desktop yes
+  if [ -n "$outside" ]; then
+    scenario "desktop build, started outside, then names a fenced path" "$outside" "Try to read the file $file; if it is missing, carry on. Then $call" desktop no
+    scenario "desktop build, started outside, then cd by a relative path" "$outside" "Run the Bash command 'cd $rel && pwd'. Then $call" desktop no
   fi
 else
   echo "NOTE  no Claude Desktop build found; the Desktop scenarios were not run"
 fi
 
-echo "folder=$dir server=$server passed=$ran failed=$fails skipped=$inconclusive"
+ran=$passed
+echo "folder=$dir server=$server passed=$passed failed=$fails skipped=$inconclusive"
 [ "$fails" -eq 0 ] || exit 1
 [ "$ran" -gt 0 ] || { echo "INCONCLUSIVE: no scenario reached a fenced call"; exit 3; }
 echo "PASS"

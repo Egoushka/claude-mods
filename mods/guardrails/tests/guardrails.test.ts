@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { boundaryDenial, compile, touchesBoundary, irreversibleKind, maskSecrets, repoFromRemote, shellCorrection } from '../hooks/rules'
+import { boundaryDenial, compile, normalizePath, touchesBoundary, visibleTools, irreversibleKind, maskSecrets, repoFromRemote, shellCorrection } from '../hooks/rules'
 
 describe('rules', () => {
   test('masks known secret shapes and keeps placeholders', () => {
@@ -57,6 +57,29 @@ describe('rules', () => {
     expect(touchesBoundary(undefined, 'Read', { file_path: '/Users/me/Projects/work/a' })).toBe(false)
   })
 
+  test('relative paths are resolved against the session folder', () => {
+    const paths = compile('/Projects/work(/|$)')
+    const base = '/Users/me/Projects'
+    expect(normalizePath('/a/b/../c/./d//e')).toBe('/a/c/d/e')
+    expect(touchesBoundary(paths, 'Bash', { command: 'cd work && ls' }, base)).toBe(true)
+    expect(touchesBoundary(paths, 'Bash', { command: 'cd personal; cd ../work/app && ls' }, base)).toBe(true)
+    expect(touchesBoundary(paths, 'Bash', { command: 'git -C work/app status' }, base)).toBe(true)
+    expect(touchesBoundary(paths, 'Bash', { command: 'cat ./work/app/a.cs' }, base)).toBe(true)
+    expect(touchesBoundary(paths, 'Read', { file_path: 'work/app/a.cs' }, base)).toBe(true)
+    expect(touchesBoundary(paths, 'Read', { file_path: '../work' }, '/Users/me/Projects/personal')).toBe(true)
+    expect(touchesBoundary(paths, 'Bash', { command: 'cd personal && ls' }, base)).toBe(false)
+    expect(touchesBoundary(paths, 'Bash', { command: 'echo work' }, base)).toBe(false)
+    expect(touchesBoundary(paths, 'Read', { file_path: 'work/a' }, '')).toBe(false)
+  })
+
+  test('the tool list drops what the boundary forbids', () => {
+    const b = { fencedTools: compile('^mcp__personal__'), insideOnlyTools: compile('^mcp__work__write') }
+    const tools = [{ name: 'Read' }, { name: 'mcp__personal__notes' }, { name: 'mcp__work__write' }]
+    expect(visibleTools(b, 'inside', tools).map(t => t.name)).toEqual(['Read', 'mcp__work__write'])
+    expect(visibleTools(b, 'outside', tools).map(t => t.name)).toEqual(['Read', 'mcp__personal__notes'])
+    expect(visibleTools(b, 'unknown', tools).map(t => t.name)).toEqual(['Read'])
+  })
+
   test('repo from remote', () => {
     expect(repoFromRemote('git@github.com:acme/app.git\n')).toBe('acme/app')
     expect(repoFromRemote('https://github.com/acme/app')).toBe('acme/app')
@@ -86,6 +109,14 @@ describe('hooks', () => {
     await $.session.start({ cwd: '/Users/me/Projects', surface: null, isInteractive: true })
     expect(JSON.stringify(await $.tool.call({ tool: 'mcp__personal__notes' } as never))).toContain('ran')
     await $.tool.call({ tool: 'Read', file_path: '/Users/me/Projects/work/app/a.cs' } as never)
+    expect(JSON.stringify(await $.tool.call({ tool: 'mcp__personal__notes' } as never))).toContain('outside this session')
+  })
+
+  test('a session that cds into the fenced folder by a relative path is fenced', { options: fence }, async ($, on) => {
+    engine(on)
+    on('tool.call', () => ({ result: 'ran' }) as never)
+    await $.session.start({ cwd: '/Users/me/Projects', surface: null, isInteractive: true })
+    await $.tool.call({ tool: 'Bash', command: 'cd work && ls' } as never)
     expect(JSON.stringify(await $.tool.call({ tool: 'mcp__personal__notes' } as never))).toContain('outside this session')
   })
 
