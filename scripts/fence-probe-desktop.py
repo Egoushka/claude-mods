@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Drive a Claude Desktop build the way the app does: stream-json over stdio, the MCP server served by the host (SDK transport).
 
-Usage: fence-probe-desktop.py <claude> <server> <marker-file> [prompt]. Prints one line: listed called denied ran searched found (searched/found count ToolSearch calls and those that returned the tool).
+Usage: fence-probe-desktop.py <claude> <server> <marker-file> [prompt]. Prints one line: listed called denied ran searched found (before/after: valid ToolSearch calls for the tool made before/after the first other tool result; found_*: how many of them returned it).
 """
 import json, subprocess, sys, os, threading
 claude, server, marker = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -13,7 +13,7 @@ def send(o): p.stdin.write(json.dumps(o) + "\n"); p.stdin.flush()
 send({"type": "control_request", "request_id": "init", "request": {"subtype": "initialize", "sdkMcpServers": [server]}})
 send({"type": "user", "message": {"role": "user", "content": prompt}})
 called = denied = listed = 0
-ping_ids = set(); search_ids = set(); searched = found = 0; outcome = ''; said = ''
+ping_ids = set(); search_ids = {}; other_ids = set(); entered = False; before = after = found_before = found_after = 0; outcome = ''; said = ''
 threading.Timer(150, p.kill).start()
 for line in p.stdout:
     try: j = json.loads(line)
@@ -33,16 +33,23 @@ for line in p.stdout:
     elif t == "assistant":
         for b in j["message"].get("content", []):
             if b.get("type") == "tool_use" and b.get("name") == f"mcp__{server}__ping": called += 1; ping_ids.add(b.get("id"))
-            if b.get("type") == "tool_use" and b.get("name") == "ToolSearch": searched += 1; search_ids.add(b.get("id"))
+            if b.get("type") == "tool_use" and b.get("name") == "ToolSearch":
+                q = json.dumps(b.get("input", {}))
+                if "ping" in q or server in q: search_ids[b.get("id")] = q
+            elif b.get("type") == "tool_use" and b.get("name") != f"mcp__{server}__ping": other_ids.add(b.get("id"))
             if b.get("type") == "text": said = b["text"]
     elif t == "user":
         c = j["message"].get("content")
         for b in c if isinstance(c, list) else []:
             if b.get("type") == "tool_result" and "guardrails" in json.dumps(b.get("content")): denied += 1
-            if b.get("type") == "tool_result" and b.get("tool_use_id") in search_ids and f"mcp__{server}__ping" in json.dumps(b.get("content")): found += 1
+            if b.get("type") == "tool_result" and b.get("tool_use_id") in search_ids and not b.get("is_error"):
+                hit = f"mcp__{server}__ping" in json.dumps(b.get("content"))
+                if entered: after += 1; found_after += hit
+                else: before += 1; found_before += hit
+            if b.get("type") == "tool_result" and b.get("tool_use_id") in other_ids: entered = True
             if b.get("type") == "tool_result" and b.get("tool_use_id") in ping_ids: outcome = json.dumps(b.get("content"))[:120]
     elif t == "result": break
 p.stdin.close(); p.terminate()
-print(f"listed={listed} called={called} denied={denied} ran={os.path.exists(marker)}", file=sys.stderr)
-print(f"result={outcome!r} said={said[:200]!r}", file=sys.stderr)
-print(f"listed={listed} called={called} denied={denied} ran={os.path.exists(marker)} searched={searched} found={found}")
+home = os.path.expanduser("~")
+print(f"result={outcome!r} said={said[:200]!r}".replace(home, "~"), file=sys.stderr)
+print(f"listed={listed} called={called} denied={denied} ran={os.path.exists(marker)} before={before} found_before={found_before} after={after} found_after={found_after}")
