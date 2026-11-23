@@ -18,7 +18,9 @@ export function compile(source: unknown): RegExp | undefined {
 
 // A session can start outside the boundary and later work inside it (a folder picked after launch,
 // a resumed session). Any built-in tool whose input names a path under the boundary marks the session
-// as inside from then on. MCP tools are skipped: their arguments are text, not places.
+// as inside from then on: any string in the input counts, so a mention latches too (it fails closed). Relative
+// paths cannot be resolved without the live folder, so `cd work` alone does not. MCP tools are skipped:
+// their arguments are text, not places.
 export function touchesBoundary(paths: RegExp | undefined, tool: string, input: Record<string, unknown>): boolean {
   if (!paths || tool.startsWith('mcp__')) return false
   const seen: string[] = []
@@ -28,7 +30,7 @@ export function touchesBoundary(paths: RegExp | undefined, tool: string, input: 
   }
   const { tool: _tool, tool_use_id: _id, ...rest } = input
   walk(rest, 0)
-  return seen.some(text => text.split(/[\s"'`;&|()<>=,]+/).some(token => token !== '' && paths.test(token)))
+  return seen.some(text => paths.test(text) || text.split(/[\s"'`;&|()<>=,]+/).some(token => token !== '' && paths.test(token)))
 }
 
 // What a call would cross: a fenced session reaching out, or an outside session writing in.

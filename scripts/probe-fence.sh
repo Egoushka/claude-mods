@@ -12,23 +12,26 @@ here=$(cd "$(dirname "$0")" && pwd)
 # Over ssh the Mac's Keychain is locked and claude says "Not logged in"; a LaunchAgent in the GUI
 # session can use it. So from ssh, hand this same script to launchd and relay its output and exit code.
 if [ "$(uname)" = Darwin ] && [ -n "${SSH_CONNECTION:-}" ] && [ -z "${PROBE_IN_LAUNCHD:-}" ]; then
-  uid=$(id -u); label=local.claude-mods.fence-probe; work=$(mktemp -d)
-  args=""; for a in "$@"; do args+="<string>$a</string>"; done
-  envs=""; for v in CLAUDE_BIN CLAUDE_CODE_ENTRYPOINT CLAUDE_SETTINGS; do [ -n "${!v:-}" ] && envs+="<key>$v</key><string>${!v}</string>"; done
+  uid=$(id -u); label=local.claude-mods.fence-probe.$$; work=$(mktemp -d)
+  trap 'launchctl bootout "gui/$uid/$label" 2>/dev/null; rm -rf "$work"' EXIT
+  xml() { local v=${1//&/&amp;}; v=${v//</&lt;}; printf '%s' "${v//>/&gt;}"; }
+  args=""; for a in "$@"; do args+="<string>$(xml "$a")</string>"; done
+  envs=""; for v in CLAUDE_BIN DESKTOP_CLAUDE_BIN CLAUDE_CODE_ENTRYPOINT CLAUDE_SETTINGS; do [ -n "${!v:-}" ] && envs+="<key>$v</key><string>$(xml "${!v}")</string>"; done
+  here_xml=$(xml "$here"); work_xml=$(xml "$work")
   cat > "$work/job.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict><key>Label</key><string>$label</string>
 <key>ProgramArguments</key><array><string>/bin/bash</string><string>-c</string>
-<string>PATH="\$HOME/.local/bin:/opt/homebrew/bin:\$PATH" PROBE_IN_LAUNCHD=1 bash "\$0" "\$@" > "$work/out" 2>&1; echo \$? > "$work/rc"</string>
-<string>$here/probe-fence.sh</string>$args</array>
+<string>PATH="\$HOME/.local/bin:/opt/homebrew/bin:\$PATH" PROBE_IN_LAUNCHD=1 bash "\$0" "\$@" > "$work_xml/out" 2>&1; echo \$? > "$work_xml/rc"</string>
+<string>$here_xml/probe-fence.sh</string>$args</array>
 <key>EnvironmentVariables</key><dict>$envs</dict>
 <key>RunAtLoad</key><true/></dict></plist>
 PLIST
   launchctl bootout "gui/$uid/$label" 2>/dev/null
   launchctl bootstrap "gui/$uid" "$work/job.plist" || { echo "FAIL: could not start the LaunchAgent"; exit 2; }
-  for _ in $(seq 1 120); do [ -e "$work/rc" ] && break; sleep 2; done
+  for _ in $(seq 1 180); do [ -e "$work/rc" ] && break; sleep 2; done
   launchctl bootout "gui/$uid/$label" 2>/dev/null
-  cat "$work/out" 2>/dev/null; rc=$(cat "$work/rc" 2>/dev/null || echo 2); rm -rf "$work"; exit "$rc"
+  cat "$work/out" 2>/dev/null; rc=$(cat "$work/rc" 2>/dev/null || echo 2); exit "$rc"
 fi
 dir=${1:-}
 server=${2:-}
@@ -80,18 +83,19 @@ scenario() {
 }
 
 call="Call the tool mcp__${server}__ping once with no arguments, then say what happened in one line."
-file=$(find "$dir" -maxdepth 2 -type f -not -name '.*' 2>/dev/null | head -1)
+# A path that need not exist: naming it is enough, and no file of the fenced folder is sent to the model.
+file="$dir/.fence-probe-nonexistent"
 outside=$(dirname "$dir")
 matches "$paths" "$outside" && outside=""
 scenario "cli, session started in the fenced folder" "$dir" "$call" cli
 if [ -n "$outside" ] && [ -n "$file" ]; then
-  scenario "cli, session started outside, then reads a fenced file" "$outside" "Read the file $file (first line only). Then $call" cli
+  scenario "cli, session started outside, then reads a fenced file" "$outside" "Try to read the file $file; if it is missing, carry on. Then $call" cli
 fi
 desktop_bin=${DESKTOP_CLAUDE_BIN:-$(ls -td "$HOME"/Library/Application\ Support/Claude/claude-code/*/*/claude.app/Contents/MacOS/claude 2>/dev/null | head -1)}
 if [ -n "$desktop_bin" ] && [ -x "$desktop_bin" ]; then
   scenario "desktop build, host-served MCP, started in the fenced folder" "$dir" "$call" desktop
   if [ -n "$outside" ] && [ -n "$file" ]; then
-    scenario "desktop build, started outside, then reads a fenced file" "$outside" "Read the file $file (first line only). Then $call" desktop
+    scenario "desktop build, started outside, then reads a fenced file" "$outside" "Try to read the file $file; if it is missing, carry on. Then $call" desktop
   fi
 else
   echo "NOTE  no Claude Desktop build found; the Desktop scenarios were not run"

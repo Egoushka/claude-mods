@@ -3,7 +3,7 @@
 
 Usage: fence-probe-desktop.py <claude> <server> <marker-file> [prompt]. Prints one line: called=N denied=N ran=bool.
 """
-import json, subprocess, sys, os, select
+import json, subprocess, sys, os, threading
 claude, server, marker = sys.argv[1], sys.argv[2], sys.argv[3]
 prompt = sys.argv[4] if len(sys.argv) > 4 else f"Call the tool mcp__{server}__ping once with no arguments, then report in one line what happened."
 p = subprocess.Popen([claude, "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
@@ -12,7 +12,8 @@ p = subprocess.Popen([claude, "-p", "--input-format", "stream-json", "--output-f
 def send(o): p.stdin.write(json.dumps(o) + "\n"); p.stdin.flush()
 send({"type": "control_request", "request_id": "init", "request": {"subtype": "initialize", "sdkMcpServers": [server]}})
 send({"type": "user", "message": {"role": "user", "content": prompt}})
-called = denied = 0; sid = None
+called = denied = 0
+threading.Timer(150, p.kill).start()
 for line in p.stdout:
     try: j = json.loads(line)
     except ValueError: continue
@@ -33,6 +34,6 @@ for line in p.stdout:
         c = j["message"].get("content")
         for b in c if isinstance(c, list) else []:
             if b.get("type") == "tool_result" and "guardrails" in json.dumps(b.get("content")): denied += 1
-    elif t == "result": sid = j.get("session_id"); break
+    elif t == "result": break
 p.stdin.close(); p.terminate()
 print(f"called={called} denied={denied} ran={os.path.exists(marker)}")

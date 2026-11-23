@@ -51,6 +51,9 @@ describe('rules', () => {
     expect(touchesBoundary(paths, 'Bash', { command: 'ls "/Users/me/Projects/work" && git status' })).toBe(true)
     expect(touchesBoundary(paths, 'Glob', { path: '/Users/me/Projects/personal', pattern: '*.md' })).toBe(false)
     expect(touchesBoundary(paths, 'mcp__personal__notes', { query: '/Users/me/Projects/work/app' })).toBe(false)
+    expect(touchesBoundary(paths, 'Read', { file_path: '/Users/me/My Projects/work/a.cs' })).toBe(false)
+    expect(touchesBoundary(compile('/work/'), 'Read', { file_path: '/Users/me/My Files/work/a.cs' })).toBe(true)
+    expect(touchesBoundary(paths, 'Edit', { edits: [{ file_path: '/Users/me/Projects/work/a.cs' }] })).toBe(true)
     expect(touchesBoundary(undefined, 'Read', { file_path: '/Users/me/Projects/work/a' })).toBe(false)
   })
 
@@ -99,6 +102,21 @@ describe('hooks', () => {
     engine(on)
     on('tool.call', () => ({ result: 'ran' }) as never)
     expect(JSON.stringify(await $.tool.call({ tool: 'mcp__personal__notes' } as never))).toContain('outside this session')
+  })
+
+  test('an inside-only tool is also stopped when the folder is unknown', { options: { ...fence, insideOnlyTools: '^mcp__work__write' } }, async ($, on) => {
+    engine(on)
+    on('tool.call', () => ({ result: 'ran' }) as never)
+    expect(JSON.stringify(await $.tool.call({ tool: 'mcp__work__write' } as never))).toContain('folder is unknown')
+  })
+
+  test('an inside-only tool works once a session has entered the boundary', { options: { ...fence, insideOnlyTools: '^mcp__work__write' } }, async ($, on) => {
+    engine(on)
+    on('tool.call', () => ({ result: 'ran' }) as never)
+    await $.session.start({ cwd: '/Users/me/Projects', surface: null, isInteractive: true })
+    expect(JSON.stringify(await $.tool.call({ tool: 'mcp__work__write' } as never))).toContain('may be called only from inside')
+    await $.tool.call({ tool: 'Read', file_path: '/Users/me/Projects/work/a.cs' } as never)
+    expect(JSON.stringify(await $.tool.call({ tool: 'mcp__work__write' } as never))).toContain('ran')
   })
 
   test('without a boundary nothing is fenced', async ($, on) => {

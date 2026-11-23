@@ -142,13 +142,16 @@ export const register: Register = (on, options) => {
     const input = e as unknown as Record<string, unknown>
     if (boundary.paths && !isEntered && touchesBoundary(boundary.paths, tool, input)) isEntered = true
     const root = boundary.paths && !isInside && !isEntered ? await $.session.root().catch(() => '') : ''
-    const isNowInside = isInside || isEntered || (boundary.paths ? !(cwd || root) || boundary.paths.test(root) : false)
-    if (isNowInside && !isInside) {
+    const isFolderUnknown = !!boundary.paths && !isInside && !isEntered && !(cwd || root)
+    const isNowInside = isInside || isEntered || isFolderUnknown || (boundary.paths?.test(root) ?? false)
+    if (isNowInside && !isInside && !isFolderUnknown) {
       isInside = true
       await bump($, () => ({ isInside }))
       await refreshStatus($)
     }
-    const crossing = boundaryDenial(boundary, isNowInside, tool, input)
+    const crossing = isFolderUnknown && boundary.insideOnlyTools?.test(tool)
+      ? `${tool} may be called only from inside the boundary, and this session's folder is unknown.`
+      : boundaryDenial(boundary, isNowInside, tool, input)
     if (crossing) return deny($, crossing)
 
     let rewritten: string | undefined
