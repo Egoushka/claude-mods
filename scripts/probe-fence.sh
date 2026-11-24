@@ -69,14 +69,14 @@ fails=0; passed=0; inconclusive=0
 # hidden=yes the tool must also be missing from the session's tool list.
 scenario() {
   local label=$1 start=$2 prompt=$3 transport=$4 hidden=$5 line called listed
-  rm -f "$marker"; d_before=0 d_found_before=0 d_after=0 d_found_after=0 d_denied=0
+  rm -f "$marker"; d_found_before=0 d_after=0 d_found_after=0 d_denied=0
   if [ "$transport" = desktop ]; then
     local dout
     dout=$(cd "$start" && CLAUDE_CODE_ENTRYPOINT=claude-desktop python3 "$here/fence-probe-desktop.py" "$desktop_bin" "$server" "$marker" "$prompt" 2>&1)
     line=$(tail -1 <<<"$dout")
     [ -z "${PROBE_VERBOSE:-}" ] || sed 's/^/      | /' <<<"$dout"
     called=$(sed -n 's/.*called=\([0-9]*\).*/\1/p' <<<"$line"); listed=$(sed -n 's/.*listed=\([0-9]*\).*/\1/p' <<<"$line")
-    for k in before found_before after found_after denied; do printf -v "d_$k" '%s' "$(sed -n "s/.*[ ]$k=\([0-9]*\).*/\1/p" <<<"$line")"; done
+    for k in found_before after found_after denied; do printf -v "d_$k" '%s' "$(sed -n "s/.*[ ]$k=\([0-9]*\).*/\1/p" <<<"$line")"; done
   else
     local out
     out=$(cd "$start" && "${CLAUDE_BIN:-claude}" -p "$prompt" --mcp-config "$cfg" --strict-mcp-config \
