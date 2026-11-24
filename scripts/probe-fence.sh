@@ -80,7 +80,7 @@ scenario() {
   else
     local out
     out=$(cd "$start" && "${CLAUDE_BIN:-claude}" -p "$prompt" --mcp-config "$cfg" --strict-mcp-config \
-      --permission-mode bypassPermissions --model haiku --max-turns 5 --output-format stream-json --verbose "${cli_extra[@]}" 2>&1)
+      --permission-mode bypassPermissions --model haiku --max-turns 5 --output-format stream-json --verbose ${cli_extra[@]+"${cli_extra[@]}"} 2>&1)
     called=$(printf '%s\n' "$out" | jq -rs --arg t "mcp__${server}__ping" '[.[] | select(.type=="assistant") | .message.content[]? | select(.type=="tool_use" and .name==$t)] | length' 2>/dev/null || echo 0)
     listed=$(printf '%s\n' "$out" | jq -rs --arg t "mcp__${server}__ping" '[.[] | select(.subtype=="init") | .tools[]? | select(.==$t)] | length' 2>/dev/null || echo 0)
     line="listed=$listed called=$called"
