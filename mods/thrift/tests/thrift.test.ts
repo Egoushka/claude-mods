@@ -137,21 +137,17 @@ const band = (surface: 'terminal' | 'desktop') =>
   ({ plugin: 'thrift', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80 } }) as never
 
 describe('coach', () => {
-  test('past the threshold the band offers Hand off; the button sends the configured prompt', { options: { coachThreshold: 100000, handoffPrompt: 'write the note' } }, async ($, on) => {
-    const sent: string[] = []
-    engine(on, { 'prompt.submit': ((_$: unknown, e: { text: string }) => (sent.push(e.text), { text: e.text })) as never })
+  // agent-checks: allow deleted-assertions -- the Hand off button and its assertions went with handoffs
+  test('past the threshold the band offers Compact and Dismiss', { options: { coachThreshold: 100000 } }, async ($, on) => {
+    engine(on)
     await $.session.start(START)
     await $.session.measure(measure(90000))
     let ui = await $.ui.mount(band('desktop'))
-    expect(await ui.find({ key: 'handoff' })).toBeUndefined()
+    expect(await ui.find({ key: 'compact' })).toBeUndefined()
     await $.session.measure(measure(120000))
     ui = await $.ui.mount(band('desktop'))
-    expect(await ui.find({ key: 'handoff' })).toBeDefined()
     expect(await ui.find({ key: 'compact' })).toBeDefined()
-    await ui.press({ key: 'handoff' })
-    expect(sent).toEqual(['write the note'])
-    ui = await $.ui.mount(band('desktop'))
-    expect(await ui.find({ key: 'handoff' })).toBeUndefined()
+    expect(await ui.find({ key: 'dismiss' })).toBeDefined()
   })
 
   test('Dismiss hides the row until the context crosses again', { options: { coachThreshold: 100000 } }, async ($, on) => {
@@ -184,7 +180,7 @@ describe('coach', () => {
     await $.session.start(START)
     await $.session.measure(measure(190000))
     const ui = await $.ui.mount(band('desktop'))
-    expect(await ui.find({ key: 'handoff' })).toBeUndefined()
+    expect(await ui.find({ key: 'compact' })).toBeUndefined()
   })
 })
 

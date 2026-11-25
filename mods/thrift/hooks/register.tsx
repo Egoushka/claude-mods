@@ -46,7 +46,7 @@ async function noteContext($: EngineInterface, tokens: number, threshold: number
   const isOver = threshold > 0 && tokens >= threshold
   const isNewCrossing = isOver && !was
   await update($, coach, c => ({ ...c, tokens, crossing: isNewCrossing ? c.crossing + 1 : c.crossing }))
-  if (isNewCrossing) $.ui.toast(`thrift: context passed ${fmtTokens(threshold)} tokens. The band offers a handoff or a compaction.`)
+  if (isNewCrossing) $.ui.toast(`thrift: context passed ${fmtTokens(threshold)} tokens. The band offers a compaction.`)
 }
 
 // The engine compacts at autoCompactThreshold when it is on; otherwise the window is the limit.
@@ -78,11 +78,6 @@ async function recordTurn($: EngineInterface) {
 
 async function dismiss($: EngineInterface) {
   await update($, coach, c => ({ ...c, dismissedCrossing: c.crossing }))
-}
-
-async function handOff($: EngineInterface, text: string) {
-  await dismiss($)
-  await $.prompt.submit({ text })
 }
 
 async function compactNow($: EngineInterface) {
@@ -117,7 +112,6 @@ async function resetAll($: EngineInterface) {
 export const register: Register = (on, options) => {
   const mode = options.routerMode === 'off' || options.routerMode === 'auto' ? options.routerMode : 'suggest'
   const threshold = typeof options.coachThreshold === 'number' ? options.coachThreshold : 150000
-  const handoffText = typeof options.handoffPrompt === 'string' && options.handoffPrompt.trim() ? options.handoffPrompt : 'Write a handoff note for the next session.'
   const isWeatherOn = options.weather !== false
   const isDietOn = options.diet !== false
 
@@ -214,8 +208,6 @@ export const register: Register = (on, options) => {
         {shown && (
           <Box>
             {isCoaching ? <Text color="yellow">{shown}, past {fmtTokens(threshold)}: </Text> : <Text dimColor>{shown}</Text>}
-            {isCoaching && <Button key="handoff" label="Hand off" variant="primary" onPress={() => handOff($, handoffText)} />}
-            {isCoaching && <Text> </Text>}
             {isCoaching && <Button key="compact" label="Compact" onPress={() => compactNow($)} />}
             {isCoaching && <Text> </Text>}
             {isCoaching && <Button key="dismiss" label="Dismiss" dimColor onPress={() => dismiss($)} />}
