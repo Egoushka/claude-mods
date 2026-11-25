@@ -137,6 +137,7 @@ const band = (surface: 'terminal' | 'desktop') =>
   ({ plugin: 'thrift', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80 } }) as never
 
 describe('coach', () => {
+  // agent-checks: allow deleted-assertions -- the Hand off button and its assertions went with handoffs
   test('past the threshold the band offers Compact and Dismiss', { options: { coachThreshold: 100000 } }, async ($, on) => {
     engine(on)
     await $.session.start(START)
