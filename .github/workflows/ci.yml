@@ -1,20 +1,27 @@
 name: ci
 
-# Pull requests only: a squash merge lands the tree the pull request already tested.
+# Owner pull requests run no job: the `fast-tier` status that `ws ship` posts after the local fast tier is their gate.
+# Fork and bot pull requests run the check and the job posts `fast-tier` for the bot ones. The full check runs on push to main.
 on:
   pull_request:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   mods:
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.type == 'Bot')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,3 +42,10 @@ jobs:
           done
           claude plugin validate . || fail=1
           exit $fail
+      # A same-repository bot pull request has no local fast tier behind it: green here is its fast-tier.
+      - if: github.event_name == 'pull_request' && github.event.pull_request.user.type == 'Bot' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: gh api "repos/$REPO/statuses/$SHA" -f state=success -f context=fast-tier -f description="mods green on a bot pull request" > /dev/null
